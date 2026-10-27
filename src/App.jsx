@@ -22,12 +22,13 @@ export default function App() {
   const [flowContext, setFlowContext] = useState({
     stage: 'greeting', // 'greeting' | 'pricing' | 'scheduling' | 'awaiting_name' | 'confirmed'
     service: 'Neurotoxin / Facial Assessment',
-    requestedDate: 'Wednesday, Oct 28',
-    requestedTime: '3:00 PM',
+    requestedDateDisplay: 'Wednesday, Oct 28',
+    requestedTimeDisplay: '3:00 PM',
+    isoSlotTime: '2026-10-28 15:00', // Pre-formatted for Google Calendar ISO parsing
     patientName: ''
   });
 
-  // Real-Time Calendar Pipeline Feed
+  // Real-Time Calendar Pipeline Feed State
   const [syncedBookings, setSyncedBookings] = useState([
     {
       id: 1,
@@ -99,7 +100,7 @@ export default function App() {
     }
 
     // -------------------------------------------------------------
-    // RULE 3: NAME CAPTURE & SILENT CALENDAR SYNC
+    // RULE 3: NAME CAPTURE -> IMMEDIATE ON-SCREEN BOOKING & MAKE.COM DISPATCH
     // -------------------------------------------------------------
     if (
       flowContext.stage === 'awaiting_name' || 
@@ -109,24 +110,24 @@ export default function App() {
     ) {
       const extractedName = userText.replace(/my name is/i, '').replace(/i am/i, '').trim();
       const patient = extractedName.length > 0 ? (extractedName.charAt(0).toUpperCase() + extractedName.slice(1)) : 'Rupa Pai';
-      const slotString = `${flowContext.requestedDate} • ${flowContext.requestedTime}`;
+      const slotDisplay = `${flowContext.requestedDateDisplay} • ${flowContext.requestedTimeDisplay}`;
 
       setTimeout(() => {
-        // Strict On-Screen Confirmation (Zero SMS Mentions)
+        // Confirmation strictly on-screen (Zero SMS text promises)
         setMessages(prev => [
           ...prev, 
           { 
             sender: 'bot', 
-            text: `Confirmed, ${patient}! Your diagnostic consultation is reserved for ${slotString}. Your appointment has been written directly to the clinic calendar. Your pre-visit guidelines are displayed below.` 
+            text: `Confirmed, ${patient}! Your diagnostic consultation is reserved for ${slotDisplay}. Your appointment has been written directly to the clinic calendar. Your pre-visit guidelines are displayed below.` 
           }
         ]);
 
-        // Push directly into the Live EHR Feed
+        // Immediate UI administrative dashboard update
         const newBooking = {
           id: Date.now(),
           patient: patient,
           service: flowContext.service,
-          time: slotString,
+          time: slotDisplay,
           status: 'Confirmed (EHR Ingested)',
           source: 'Glow AI Web Concierge'
         };
@@ -134,12 +135,27 @@ export default function App() {
         setSyncedBookings(prev => [newBooking, ...prev]);
         setLeadStage('Direct Calendar Booking Confirmed');
         setFlowContext(prev => ({ ...prev, stage: 'confirmed', patientName: patient }));
+
+        // ASYNCHRONOUS REAL-TIME DISPATCH TO MAKE.COM WEBHOOK
+        fetch('https://hook.eu1.make.com/4wjnnmgf7kem4kfjs1pe5i7s7f55y816', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_name: patient,
+            service: flowContext.service,
+            slot_time: flowContext.isoSlotTime, // Formatted for Google Calendar: '2026-10-28 15:00'
+            display_time: slotDisplay,
+            notes: 'Triaged via Glow AI Web Concierge',
+            source: 'https://glowai-pearl.vercel.app'
+          })
+        }).catch(err => console.log('Silent calendar sync dispatch error:', err));
+
       }, 700);
       return;
     }
 
     // -------------------------------------------------------------
-    // RULE 4: DATE & TIME COORDINATION
+    // RULE 4: DATE & TIME SCHEDULING COORDINATION
     // -------------------------------------------------------------
     if (
       query.includes('28') || 
@@ -152,11 +168,14 @@ export default function App() {
       query.includes('yes')
     ) {
       const chosenTime = query.includes('3') ? '3:00 PM' : '2:30 PM';
+      const isoTime = query.includes('3') ? '2026-10-28 15:00' : '2026-10-28 14:30';
+
       setFlowContext(prev => ({ 
         ...prev, 
         stage: 'awaiting_name', 
-        requestedDate: 'Wednesday, Oct 28', 
-        requestedTime: chosenTime 
+        requestedDateDisplay: 'Wednesday, Oct 28', 
+        requestedTimeDisplay: chosenTime,
+        isoSlotTime: isoTime
       }));
 
       setTimeout(() => {
@@ -173,7 +192,7 @@ export default function App() {
     }
 
     // -------------------------------------------------------------
-    // RULE 5: PRICING & INITIAL TRIAGE
+    // RULE 5: PRICING & DEFAULT TRIAGE
     // -------------------------------------------------------------
     setTimeout(() => {
       setMessages(prev => [
@@ -260,12 +279,12 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-                40% of aesthetic inquiries arrive after clinic hours[cite: 2, 5]. Glow AI qualifies treatments, answers protocol questions, and deposits confirmed appointments straight into your electronic medical calendar[cite: 2, 5].
+                40% of aesthetic inquiries arrive after clinic hours[cite: 2, 7]. Glow AI qualifies treatments, answers protocol questions, and deposits confirmed appointments straight into your electronic medical calendar[cite: 2, 7].
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: Simulated Chat Widget */}
+              {/* Left Column: Mobile Simulator */}
               <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center gap-2">
@@ -323,7 +342,7 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Right Column: Real-Time Administrative Pipeline Feed */}
+              {/* Right Column: Live Administrative Pipeline Feed */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
@@ -388,7 +407,7 @@ export default function App() {
                 <div className="bg-teal-950/20 border border-teal-500/20 rounded-xl p-4 flex gap-3 items-center">
                   <Clock className="w-6 h-6 text-teal-400 shrink-0" />
                   <div className="text-xs text-slate-300">
-                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving after-hours are qualified and booked into provider slots without front-desk personnel handling phone queues[cite: 2, 5, 6].
+                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving after-hours are qualified and booked directly onto provider schedules without staff handling phone queues[cite: 2, 7, 8].
                   </div>
                 </div>
               </div>
@@ -400,7 +419,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">After-Hours Revenue Leakage Calculator</h2>
-              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic[cite: 2, 5].</p>
+              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic[cite: 2, 7].</p>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center shadow-xl">
@@ -456,13 +475,13 @@ export default function App() {
                 <div>
                   <div className="text-xs uppercase tracking-wider text-rose-400 font-semibold">Estimated Monthly Revenue Forfeited</div>
                   <div className="text-4xl font-extrabold text-white mt-1">${calculateLostRevenue().toLocaleString()}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">Leaves directly to competing geographic clinics[cite: 5, 6]</div>
+                  <div className="text-[11px] text-slate-500 mt-1">Leaves directly to competing geographic clinics[cite: 7, 8]</div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800">
                   <div className="text-xs uppercase tracking-wider text-emerald-400 font-semibold">Glow AI Projected Monthly Recovery</div>
                   <div className="text-3xl font-extrabold text-emerald-400 mt-1">${calculateRecovered().toLocaleString()}</div>
-                  <div className="text-[11px] text-slate-400 mt-1">At standard $500/month flat retainer (ROI: {(calculateRecovered() / 500).toFixed(1)}x)[cite: 2, 5]</div>
+                  <div className="text-[11px] text-slate-400 mt-1">At standard $500/month flat retainer (ROI: {(calculateRecovered() / 500).toFixed(1)}x)[cite: 2, 7]</div>
                 </div>
 
                 <button
@@ -544,14 +563,14 @@ export default function App() {
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white">The 14-Day Zero-Risk Clinical Pilot</h2>
               <p className="text-xs sm:text-sm text-slate-400">
-                We install the after-hours assistant on your website and channels for 14 days[cite: 5]. If it does not capture and book at least 3 high-value patient appointments, you pay zero[cite: 4].
+                We install the after-hours assistant on your website and channels for 14 days[cite: 7]. If it does not capture and book at least 3 high-value patient appointments, you pay zero[cite: 4].
               </p>
             </div>
 
             <div className="space-y-3 bg-slate-950 border border-slate-800 p-5 rounded-xl text-xs text-slate-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>48-Hour turnkey setup handled entirely by our engineering team[cite: 2, 3, 6]</span>
+                <span>48-Hour turnkey setup handled entirely by our engineering team[cite: 2, 3, 8]</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
@@ -559,19 +578,19 @@ export default function App() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Zero software switch: maps into your existing calendar and intake channels[cite: 2, 3, 6]</span>
+                <span>Zero software switch: maps into your existing calendar and intake channels[cite: 2, 3, 8]</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Retainer after pilot: $500/month flat fee with month-to-month cancellation[cite: 2, 4, 5]</span>
+                <span>Retainer after pilot: $500/month flat fee with month-to-month cancellation[cite: 2, 4, 7]</span>
               </div>
             </div>
 
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <div className="text-xs text-slate-400">Direct Founder Line[cite: 5]</div>
-                <div className="text-sm font-bold text-white">Somesh Badli[cite: 3, 5]</div>
-                <div className="text-xs font-mono text-teal-400">+91 79754 94657 | someshbadli@gmail.com[cite: 3, 5]</div>
+                <div className="text-xs text-slate-400">Direct Founder Line[cite: 7]</div>
+                <div className="text-sm font-bold text-white">Somesh Badli[cite: 3, 7]</div>
+                <div className="text-xs font-mono text-teal-400">+91 79754 94657 | someshbadli@gmail.com[cite: 3, 7]</div>
               </div>
               <a
                 href="mailto:someshbadli@gmail.com?subject=Glow%20AI%2014-Day%20Pilot%20Request"
@@ -586,7 +605,7 @@ export default function App() {
 
       <footer className="border-t border-slate-800/80 bg-slate-950 py-8 px-4 text-center text-xs text-slate-500 space-y-2">
         <p>© 2026 Glow AI Automation. Built for Medical Spas, Aesthetic Dermatology, & Plastic Surgery Practices.</p>
-        <p className="font-mono text-[11px] text-slate-600">Operating under founder Somesh Badli • someshbadli@gmail.com • +91 79754 94657[cite: 5]</p>
+        <p className="font-mono text-[11px] text-slate-600">Operating under founder Somesh Badli • someshbadli@gmail.com • +91 79754 94657[cite: 7]</p>
       </footer>
     </div>
   );
