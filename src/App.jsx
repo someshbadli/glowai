@@ -155,7 +155,7 @@ export default function App() {
     }).catch(err => console.log('Silent dispatch:', err));
   };
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || isLoading) return;
 
@@ -166,36 +166,52 @@ export default function App() {
     const updated = [...messages, { sender: 'user', text: query }];
     setMessages(updated);
 
-    const outcome = processClinicalTriage(query, bookingState);
+    try {
+      // Call your secure Vercel serverless function
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updated.map(m => ({
+            role: m.sender === 'user' ? 'user' : 'assistant',
+            content: m.text
+          }))
+        })
+      });
 
-    if (outcome.nextStep) {
-      setBookingState(prev => ({
-        ...prev,
-        step: outcome.nextStep,
-        name: outcome.extractedName || prev.name,
-        slot: outcome.selectedSlot || prev.slot
-      }));
-    }
+      const data = await res.json();
+      let botReply = data.reply || "I apologize, our clinical scheduling engine is momentarily reconnecting. Would you like to check openings for tomorrow?";
 
-    if (outcome.isBookingComplete) {
-      const newEntry = {
-        id: Date.now(),
-        patient: outcome.bookingData.patient,
-        email: outcome.bookingData.email,
-        service: outcome.bookingData.service,
-        time: outcome.bookingData.time,
-        status: 'Confirmed (EHR + Email Synced)'
-      };
-      setSyncedBookings(prev => [newEntry, ...prev]);
-      triggerMakeWebhook(newEntry);
-      setBookingState({ step: 'idle', name: '', slot: '' });
-    }
+      // Check if Llama 3.3 emitted the booking confirmation tag
+      if (botReply.includes('[BOOKING_READY:')) {
+        const match = botReply.match(/\[BOOKING_READY:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]/);
+        botReply = botReply.replace(/\[BOOKING_READY:.*?\]/, '').trim();
 
-    setTimeout(() => {
-      setMessages(prev => [...prev, { sender: 'bot', text: outcome.reply }]);
-      setLeadStage(outcome.stage);
+        if (match) {
+          const newEntry = {
+            id: Date.now(),
+            patient: match[1].trim(),
+            email: match[2].trim(),
+            service: match[3].trim(),
+            time: match[4].trim(),
+            status: 'Confirmed (EHR + Email Synced)'
+          };
+          setSyncedBookings(prev => [newEntry, ...prev]);
+          setLeadStage('Confirmed: Direct Calendar Synced');
+          triggerMakeWebhook(newEntry);
+        }
+      }
+
+      setMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
+    } catch (err) {
+      console.error('API Error:', err);
+      setMessages(prev => [
+        ...prev, 
+        { sender: 'bot', text: 'I would be happy to help coordinate that. Could you share your preferred day and time?' }
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 450);
+    }
   };
 
   return (
