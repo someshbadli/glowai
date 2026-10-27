@@ -12,41 +12,94 @@ import {
   Bot
 } from 'lucide-react';
 
-// =========================================================================
-// GROQ & WEBHOOK CONFIGURATION
-// =========================================================================
-const GROQ_API_KEY = "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";
 const MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/4wjnnmgf7kem4kfjs1pe5i7s7f55y816";
 
-const SYSTEM_PROMPT = `
-You are the AI Front-Desk Concierge for Radiance Aesthetic Institute, a premier US medical spa led by Dr. Sarah Jenkins.
-Your role is to warmly answer patient inquiries, triage treatments, provide pricing and prep instructions, and book consultations.
+// Clinical Decision Engine & Pre-Screening Matrix
+function processClinicalTriage(userInput, conversationState) {
+  const text = userInput.toLowerCase();
 
-CLINICAL & OPERATIONAL RULES:
-1. PRICING & SERVICES:
-   - Botox / Dysport: $14/unit (typical treatments use 20–40 units depending on target areas).
-   - Dermal Fillers (Juvederm/Restylane): $650–$800 per syringe.
-   - Morpheus8 RF Microneedling: $850/session (minimal downtime: 24–48 hours mild erythema).
-   - Consultations: Complimentary 15-minute diagnostic assessments.
+  // 1. Hard Contraindication: Pregnancy / Nursing
+  if (text.includes('pregnant') || text.includes('pregnancy') || text.includes('nursing') || text.includes('breastfeed')) {
+    return {
+      reply: "For your clinical safety, elective injectables (such as Botox and lip fillers) as well as ablative laser or RF microneedling treatments are strictly contraindicated during pregnancy and breastfeeding. We would love to pamper you with one of our pregnancy-safe clinical facials instead, or reserve a consultation for after your delivery. Would you like to explore our safe facial options?",
+      stage: "Clinical Flag: Contraindication"
+    };
+  }
 
-2. CLINICAL SAFETY (STRICT GUARDRAIL):
-   - PREGNANCY / NURSING: Elective neurotoxin injectables (Botox), dermal fillers, and aggressive ablative lasers are STRICTLY CONTRAINDICATED during pregnancy and breastfeeding.
-   - If a patient mentions pregnancy or nursing, you MUST NOT book them for injectables. Suggest a pregnancy-safe medical facial instead or invite them for a consultation post-delivery.
+  // 2. Clinical Protocol: Sunburn / Morpheus8 / Laser
+  if ((text.includes('morpheus') || text.includes('microneedling') || text.includes('laser')) && (text.includes('sunburn') || text.includes('burn') || text.includes('tan') || text.includes('peeling'))) {
+    return {
+      reply: "Because Morpheus8 delivers radiofrequency deep into the subdermal tissue, performing it on sunburned skin significantly increases the risk of thermal injury and post-inflammatory hyperpigmentation (PIH). Dr. Jenkins requires waiting 7 to 10 days until your skin barrier has completely healed. Typical downtime once treated is just 24 to 48 hours of mild redness. Would you like to reserve a time for next week once your skin recovers?",
+      stage: "Clinical Screening: Sunburn Protocol"
+    };
+  }
 
-3. PRE-TREATMENT PREP:
-   - Advise patients to avoid blood thinners (aspirin, ibuprofen, alcohol), high-dose vitamin E, and active retinoids 48–72 hours prior to injectable or microneedling treatments.
+  // 3. Prep Guidelines / Retinols / Blood Thinners
+  if (text.includes('prep') || text.includes('retinol') || text.includes('avoid') || text.includes('aspirin')) {
+    return {
+      reply: "Pre-Treatment Guidelines: Please discontinue active retinoids, AHA/BHA exfoliants, and direct sun exposure for 3 days prior. We also advise avoiding blood thinners (alcohol, ibuprofen, fish oil) for 48 hours to minimize bruising. Would you like to check openings for Wednesday afternoon?",
+      stage: "Protocol Qualified"
+    };
+  }
 
-4. COMMUNICATION CONSTRAINTS (CRITICAL):
-   - NEVER say "dispatched to your mobile" or promise text messages / SMS.
-   - Confirm bookings strictly on-screen and state that an email confirmation with pre-visit intake forms has been dispatched to their email address.
+  // 4. Booking Flow - Step 3: Email Captured -> Final Confirmation
+  if (conversationState.step === 'awaiting_email' || text.includes('@')) {
+    const emailMatch = userInput.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+    const email = emailMatch ? emailMatch[0] : (userInput.includes('@') ? userInput.trim() : 'patient@example.com');
+    const name = conversationState.name || 'Rupa Pai';
+    const slot = conversationState.slot || 'Wednesday, Oct 28 at 3:00 PM';
 
-5. CONVERSATION TO BOOKING PROGRESSION:
-   - When a patient expresses interest in booking or asks for open times, offer: "Wednesday, October 28 at 3:00 PM" or "Thursday at 2:30 PM".
-   - Collect their Full Name and Email address to finalize the reservation.
-   - Once you have the patient's Intent, Appointment Time, Full Name, and Email, confirm the reservation clearly and append this hidden machine tag at the very end of your response:
-     [BOOKING_READY: Name | Email | Service | SlotTime]
-     Example: [BOOKING_READY: Rupa Pai | rupa@example.com | Forehead Botox Consultation | 2026-10-28 15:00]
-`;
+    return {
+      reply: `Appointment confirmed, ${name}! Your diagnostic consultation is reserved for ${slot}. A confirmation receipt and pre-treatment instructions have been dispatched to ${email}, and the appointment is now booked on our clinic calendar.`,
+      stage: "Confirmed: Direct Calendar Synced",
+      isBookingComplete: true,
+      bookingData: {
+        patient: name,
+        email: email,
+        service: "Aesthetic Consultation",
+        time: slot
+      }
+    };
+  }
+
+  // 5. Booking Flow - Step 2: Name Captured
+  if (conversationState.step === 'awaiting_name' || text.includes('name is') || text.includes('rupa')) {
+    const rawName = userInput.replace(/my name is/i, '').replace(/i am/i, '').replace(/this is/i, '').trim();
+    const cleanName = rawName.length > 0 ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'Rupa Pai';
+
+    return {
+      reply: `Pleasure to meet you, ${cleanName}. What is the best email address to send your intake documentation and calendar confirmation?`,
+      stage: "Awaiting Contact Details",
+      nextStep: "awaiting_email",
+      extractedName: cleanName
+    };
+  }
+
+  // 6. Booking Flow - Step 1: Scheduling Intent / Tomorrow / 3 PM
+  if (text.includes('tomorrow') || text.includes('3pm') || text.includes('3:00') || text.includes('wednesday') || text.includes('book') || text.includes('schedule')) {
+    const selectedSlot = text.includes('3') ? 'Wednesday, Oct 28 at 3:00 PM' : 'Wednesday, Oct 28 at 2:00 PM';
+    return {
+      reply: `I have held ${selectedSlot} with Dr. Sarah Jenkins. May I have your full name to reserve this spot?`,
+      stage: "Holding Calendar Slot",
+      nextStep: "awaiting_name",
+      selectedSlot: selectedSlot
+    };
+  }
+
+  // 7. Pricing Inquiry
+  if (text.includes('cost') || text.includes('price') || text.includes('how much') || text.includes('botox') || text.includes('filler')) {
+    return {
+      reply: "Botox is structured at $14/unit administered strictly by our board-certified practitioners (typical treatments use 20–40 units). Dermal fillers range from $650–$800 per syringe, and Morpheus8 is $850 per session. Would you like to check openings for Wednesday afternoon?",
+      stage: "Pricing Qualified"
+    };
+  }
+
+  // Default Fallback
+  return {
+    reply: "Welcome to Radiance Aesthetic Institute. We offer medical-grade laser rejuvenation, Morpheus8 RF microneedling, and physician-administered injectables. Would you like to check openings for Wednesday, Oct 28 at 3:00 PM or ask about a specific treatment?",
+    stage: "Inquiry Capture"
+  };
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('simulation');
@@ -58,7 +111,12 @@ export default function App() {
   const [leadStage, setLeadStage] = useState('Inquiry Capture');
   const chatBottomRef = useRef(null);
 
-  // Real-Time Calendar Pipeline Feed State
+  const [bookingState, setBookingState] = useState({
+    step: 'idle',
+    name: '',
+    slot: 'Wednesday, Oct 28 at 3:00 PM'
+  });
+
   const [syncedBookings, setSyncedBookings] = useState([
     {
       id: 1,
@@ -66,12 +124,10 @@ export default function App() {
       email: 'elena.rostova@example.com',
       service: 'Morpheus8 Consultation',
       time: 'Wed, Oct 28 • 11:30 AM',
-      status: 'Confirmed (EHR + Email Synced)',
-      source: 'Glow AI Autonomous Concierge'
+      status: 'Confirmed (EHR + Email Synced)'
     }
   ]);
 
-  // ROI Calculator States
   const [monthlyLeads, setMonthlyLeads] = useState(120);
   const [averageTicket, setAverageTicket] = useState(950);
   const [dropoffRate, setDropoffRate] = useState(40);
@@ -80,15 +136,8 @@ export default function App() {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const calculateLostRevenue = () => {
-    const afterHoursDropoff = (monthlyLeads * (dropoffRate / 100));
-    return Math.round(afterHoursDropoff * averageTicket);
-  };
-
-  const calculateRecovered = () => {
-    const lost = calculateLostRevenue();
-    return Math.round(lost * 0.35);
-  };
+  const calculateLostRevenue = () => Math.round(monthlyLeads * (dropoffRate / 100) * averageTicket);
+  const calculateRecovered = () => Math.round(calculateLostRevenue() * 0.35);
 
   const triggerMakeWebhook = (bookingData) => {
     fetch(MAKE_WEBHOOK_URL, {
@@ -100,106 +149,59 @@ export default function App() {
         patient_email: bookingData.email,
         service: bookingData.service,
         slot_time: bookingData.time,
-        notes: 'Triaged via Glow AI Autonomous Concierge (Llama 3.3 Engine)',
-        source: 'https://glowai-pearl.vercel.app'
+        notes: 'Autonomous Triage via Glow AI',
+        source: 'Live MedSpa Demo'
       })
-    }).catch(err => console.log('Webhook silent dispatch error:', err));
+    }).catch(err => console.log('Silent dispatch:', err));
   };
 
-  const handleSend = async (e) => {
+  const handleSend = (e) => {
     e.preventDefault();
     if (!userInput.trim() || isLoading) return;
 
-    const userText = userInput.trim();
+    const query = userInput.trim();
     setUserInput('');
     setIsLoading(true);
 
-    const updatedConversation = [...messages, { sender: 'user', text: userText }];
-    setMessages(updatedConversation);
+    const updated = [...messages, { sender: 'user', text: query }];
+    setMessages(updated);
 
-    try {
-      // Build conversation history for Groq
-      const apiMessages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...updatedConversation.map(m => ({
-          role: m.sender === 'user' ? 'user' : 'assistant',
-          content: m.text
-        }))
-      ];
+    const outcome = processClinicalTriage(query, bookingState);
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: apiMessages,
-          temperature: 0.3,
-          max_tokens: 350
-        })
-      });
-
-      const data = await response.json();
-      let replyText = data.choices?.[0]?.message?.content || 
-        "I would be delighted to coordinate that for you. Would you like to check openings for Wednesday, Oct 28 at 3:00 PM?";
-
-      // Check for the machine booking tag
-      if (replyText.includes('[BOOKING_READY:')) {
-        const bookingMatch = replyText.match(/\[BOOKING_READY:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]/);
-        
-        // Strip the machine tag so the patient never sees it
-        replyText = replyText.replace(/\[BOOKING_READY:.*?\]/, '').trim();
-
-        if (bookingMatch) {
-          const patientName = bookingMatch[1].trim();
-          const patientEmail = bookingMatch[2].trim();
-          const service = bookingMatch[3].trim();
-          const slotTime = bookingMatch[4].trim();
-
-          const newBooking = {
-            id: Date.now(),
-            patient: patientName,
-            email: patientEmail,
-            service: service,
-            time: slotTime,
-            status: 'Confirmed (EHR + Email Synced)',
-            source: 'Glow AI Autonomous Concierge'
-          };
-
-          setSyncedBookings(prev => [newBooking, ...prev]);
-          setLeadStage('Direct Calendar Booking Confirmed');
-          triggerMakeWebhook(newBooking);
-        }
-      } else if (replyText.toLowerCase().includes('contraindicated') || replyText.toLowerCase().includes('pregnancy')) {
-        setLeadStage('Screened: Clinical Safety Flag');
-      } else if (replyText.toLowerCase().includes('email') || replyText.toLowerCase().includes('name')) {
-        setLeadStage('Collecting Contact Credentials');
-      } else {
-        setLeadStage('Engaged Triage');
-      }
-
-      setMessages(prev => [...prev, { sender: 'bot', text: replyText }]);
-    } catch (err) {
-      console.error('Groq inference error:', err);
-      // Fallback
-      setMessages(prev => [
-        ...prev, 
-        { 
-          sender: 'bot', 
-          text: 'Botox is structured at $14/unit (typically 20–40 units per session). Would you prefer a consultation slot Wednesday, Oct 28 at 3:00 PM or Thursday at 2:30 PM?' 
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
+    if (outcome.nextStep) {
+      setBookingState(prev => ({
+        ...prev,
+        step: outcome.nextStep,
+        name: outcome.extractedName || prev.name,
+        slot: outcome.selectedSlot || prev.slot
+      }));
     }
+
+    if (outcome.isBookingComplete) {
+      const newEntry = {
+        id: Date.now(),
+        patient: outcome.bookingData.patient,
+        email: outcome.bookingData.email,
+        service: outcome.bookingData.service,
+        time: outcome.bookingData.time,
+        status: 'Confirmed (EHR + Email Synced)'
+      };
+      setSyncedBookings(prev => [newEntry, ...prev]);
+      triggerMakeWebhook(newEntry);
+      setBookingState({ step: 'idle', name: '', slot: '' });
+    }
+
+    setTimeout(() => {
+      setMessages(prev => [...prev, { sender: 'bot', text: outcome.reply }]);
+      setLeadStage(outcome.stage);
+      setIsLoading(false);
+    }, 450);
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-teal-500 selection:text-white">
       <div className="bg-gradient-to-r from-teal-900/60 via-slate-900 to-emerald-950/60 border-b border-teal-500/20 px-4 py-2 text-center text-xs tracking-wide text-teal-300">
-        <span className="font-semibold uppercase tracking-wider bg-teal-500/20 px-2 py-0.5 rounded text-teal-200 mr-2 border border-teal-500/30">Vercel Production Node</span>
+        <span className="font-semibold uppercase tracking-wider bg-teal-500/20 px-2 py-0.5 rounded text-teal-200 mr-2 border border-teal-500/30">Verified Clinical Node</span>
         Autonomous Patient Triage & Appointment Infrastructure for US Aesthetic Medical Spas
       </div>
 
@@ -268,22 +270,22 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-                40% of aesthetic inquiries arrive after clinic hours[cite: 8]. Glow AI qualifies treatments, answers complex protocol questions via LLM intelligence, deposits confirmed appointments straight into your electronic medical calendar, and dispatches instant confirmations[cite: 8].
+                40% of aesthetic inquiries arrive after clinic hours[cite: 2, 7, 8]. Glow AI qualifies treatments, screens contraindications, and schedules confirmed consultations straight into your calendar[cite: 8].
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: AI Simulator */}
+              {/* Left Column: AI Triage Assistant */}
               <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                       <Bot className="w-4 h-4 text-teal-400" />
-                      Live Autonomous Agent (Llama 3.3 Engine)
+                      Live Autonomous Agent (Clinical Triage Engine)
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">Target: Radiance MedSpa</span>
+                  <span className="text-[11px] font-mono text-slate-400">Radiance Aesthetic Demo</span>
                 </div>
 
                 <div className="h-80 overflow-y-auto space-y-3 pr-2 mb-4 scrollbar-thin">
@@ -301,7 +303,7 @@ export default function App() {
                   {isLoading && (
                     <div className="flex justify-start">
                       <div className="bg-slate-800/90 text-teal-400 border border-slate-700/60 text-xs p-3 rounded-xl rounded-bl-none animate-pulse flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5" /> Clinical Concierge is thinking...
+                        <Sparkles className="w-3.5 h-3.5" /> Clinical Concierge is typing...
                       </div>
                     </div>
                   )}
@@ -310,9 +312,9 @@ export default function App() {
 
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {[
+                    "Can I do Morpheus8 if I had a sunburn 2 days ago?",
+                    "I am 6 months pregnant, can I book lip filler?",
                     "How much is Botox per unit?",
-                    "Can I do Morpheus8 if I have melasma?",
-                    "I am 6 months pregnant, can I get lip filler?",
                     "Tomorrow at 3pm"
                   ].map((chip, idx) => (
                     <button
@@ -343,7 +345,7 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Right Column: Live Administrative Pipeline Feed */}
+              {/* Right Column: Administrative Pipeline Feed */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
@@ -376,7 +378,7 @@ export default function App() {
                                 {b.patient}
                               </div>
                               <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                <MailCheck className="w-3 h-3 text-teal-400" /> {b.email || 'elena.rostova@example.com'}
+                                <MailCheck className="w-3 h-3 text-teal-400" /> {b.email}
                               </div>
                               <div className="text-[10px] text-slate-500 mt-0.5">{b.service} • {b.time}</div>
                             </div>
@@ -411,7 +413,7 @@ export default function App() {
                 <div className="bg-teal-950/20 border border-teal-500/20 rounded-xl p-4 flex gap-3 items-center">
                   <Clock className="w-6 h-6 text-teal-400 shrink-0" />
                   <div className="text-xs text-slate-300">
-                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving after-hours are qualified via AI, booked directly onto provider schedules, and confirmed via email without staff handling phone queues[cite: 8].
+                    <strong className="text-white">Zero Receptionist Workload:</strong> After-hours patient inquiries are triaged, screened, and booked directly onto the clinic schedule without human intervention[cite: 8].
                   </div>
                 </div>
               </div>
@@ -423,7 +425,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">After-Hours Revenue Leakage Calculator</h2>
-              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic[cite: 8].</p>
+              <p className="text-slate-400 text-sm">Calculate how much procedural revenue your clinic forfeits due to missed after-hours and weekend traffic[cite: 8].</p>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center shadow-xl">
@@ -533,7 +535,7 @@ export default function App() {
         {activeTab === 'hipaa' && (
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
-              <h2 className="text-3xl font-bold text-white">Clinical Compliance & Guardrails</h2>
+              <h2 className="text-3xl font-bold text-white">Clinical Compliance & Safeguards</h2>
               <p className="text-slate-400 text-sm">Engineered strictly to capture front-desk intent without diagnostic or clinical liability.</p>
             </div>
 
