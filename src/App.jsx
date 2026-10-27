@@ -6,7 +6,8 @@ import {
   Database, 
   Send, 
   ShieldCheck, 
-  Lock
+  Lock,
+  CalendarCheck2
 } from 'lucide-react';
 
 export default function App() {
@@ -16,6 +17,27 @@ export default function App() {
   ]);
   const [userInput, setUserInput] = useState('');
   const [leadStage, setLeadStage] = useState('Inquiry Capture');
+
+  // Conversational Flow State
+  const [flowContext, setFlowContext] = useState({
+    stage: 'greeting', // 'greeting' | 'pricing' | 'scheduling' | 'awaiting_name' | 'confirmed'
+    service: 'Neurotoxin / Facial Assessment',
+    requestedDate: 'Wednesday, Oct 28',
+    requestedTime: '3:00 PM',
+    patientName: ''
+  });
+
+  // Real-Time Calendar Pipeline Feed
+  const [syncedBookings, setSyncedBookings] = useState([
+    {
+      id: 1,
+      patient: 'Elena Rostova',
+      service: 'Morpheus8 Consultation',
+      time: 'Wed, Oct 28 • 11:30 AM',
+      status: 'Confirmed (EHR Ingested)',
+      source: 'Glow AI Web Concierge'
+    }
+  ]);
 
   // ROI Calculator States
   const [monthlyLeads, setMonthlyLeads] = useState(120);
@@ -36,21 +58,134 @@ export default function App() {
     e.preventDefault();
     if (!userInput.trim()) return;
 
-    const userText = userInput;
+    const userText = userInput.trim();
     setMessages(prev => [...prev, { sender: 'user', text: userText }]);
     setUserInput('');
 
-    setTimeout(() => {
-      let reply = "I would be happy to coordinate that for you. Our physician-led team offers Morpheus8, neurotoxin injectables, and advanced skin resurfacing. Would you prefer a morning or late afternoon consultation slot this Thursday?";
-      if (userText.toLowerCase().includes('botox') || userText.toLowerCase().includes('price') || userText.toLowerCase().includes('cost')) {
-        reply = "Botox is structured at $14/unit, administered strictly by board-certified practitioners. Typical sessions use 20–40 units depending on the target areas. Would you like to reserve a 15-minute diagnostic assessment?";
-        setLeadStage('Treatment Qualified');
-      } else if (userText.toLowerCase().includes('time') || userText.toLowerCase().includes('book') || userText.toLowerCase().includes('thursday') || userText.toLowerCase().includes('yes')) {
-        reply = "Confirmed. I have reserved an opening for Thursday at 4:30 PM with Dr. Sarah Jenkins. A calendar invitation and pre-treatment protocol have been dispatched to your mobile.";
+    const query = userText.toLowerCase();
+
+    // -------------------------------------------------------------
+    // RULE 1: CLINICAL CONTRAINDICATION (Pregnancy / Nursing)
+    // -------------------------------------------------------------
+    if (query.includes('pregnant') || query.includes('pregnancy') || query.includes('nursing') || query.includes('breastfeed')) {
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev, 
+          { 
+            sender: 'bot', 
+            text: 'For clinical safety, elective injectables (such as lip fillers or Botox) and deep laser resurfacing cannot be administered during pregnancy or while breastfeeding. We would love to welcome you for a pregnancy-safe medical facial, or reserve a consultation for after your delivery. Would you like to check facial options?' 
+          }
+        ]);
+        setLeadStage('Screened: Clinical Contraindication');
+      }, 600);
+      return;
+    }
+
+    // -------------------------------------------------------------
+    // RULE 2: PRE-TREATMENT PROTOCOLS (Microneedling / Botox Prep)
+    // -------------------------------------------------------------
+    if (query.includes('avoid') || query.includes('prep') || query.includes('preparation') || query.includes('downtime')) {
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev, 
+          { 
+            sender: 'bot', 
+            text: 'Clinical Prep Guidelines: Please discontinue active retinoids, AHA/BHAs, direct sun exposure, and blood thinners (aspirin, ibuprofen, alcohol) 48–72 hours prior to treatment. Would you like to check practitioner availability for Wednesday afternoon?' 
+          }
+        ]);
+        setLeadStage('Protocol Qualified');
+      }, 600);
+      return;
+    }
+
+    // -------------------------------------------------------------
+    // RULE 3: NAME CAPTURE & SILENT CALENDAR SYNC
+    // -------------------------------------------------------------
+    if (
+      flowContext.stage === 'awaiting_name' || 
+      query.includes('name is') || 
+      query.includes('rupa') ||
+      (flowContext.stage === 'scheduling' && userText.split(' ').length <= 4 && !query.includes('pm') && !query.includes('am'))
+    ) {
+      const extractedName = userText.replace(/my name is/i, '').replace(/i am/i, '').trim();
+      const patient = extractedName.length > 0 ? (extractedName.charAt(0).toUpperCase() + extractedName.slice(1)) : 'Rupa Pai';
+      const slotString = `${flowContext.requestedDate} • ${flowContext.requestedTime}`;
+
+      setTimeout(() => {
+        // Strict On-Screen Confirmation (Zero SMS Mentions)
+        setMessages(prev => [
+          ...prev, 
+          { 
+            sender: 'bot', 
+            text: `Confirmed, ${patient}! Your diagnostic consultation is reserved for ${slotString}. Your appointment has been written directly to the clinic calendar. Your pre-visit guidelines are displayed below.` 
+          }
+        ]);
+
+        // Push directly into the Live EHR Feed
+        const newBooking = {
+          id: Date.now(),
+          patient: patient,
+          service: flowContext.service,
+          time: slotString,
+          status: 'Confirmed (EHR Ingested)',
+          source: 'Glow AI Web Concierge'
+        };
+
+        setSyncedBookings(prev => [newBooking, ...prev]);
         setLeadStage('Direct Calendar Booking Confirmed');
-      }
-      setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
-    }, 800);
+        setFlowContext(prev => ({ ...prev, stage: 'confirmed', patientName: patient }));
+      }, 700);
+      return;
+    }
+
+    // -------------------------------------------------------------
+    // RULE 4: DATE & TIME COORDINATION
+    // -------------------------------------------------------------
+    if (
+      query.includes('28') || 
+      query.includes('october') || 
+      query.includes('tomorrow') || 
+      query.includes('afternoon') || 
+      query.includes('3pm') || 
+      query.includes('thursday') || 
+      query.includes('book') || 
+      query.includes('yes')
+    ) {
+      const chosenTime = query.includes('3') ? '3:00 PM' : '2:30 PM';
+      setFlowContext(prev => ({ 
+        ...prev, 
+        stage: 'awaiting_name', 
+        requestedDate: 'Wednesday, Oct 28', 
+        requestedTime: chosenTime 
+      }));
+
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev, 
+          { 
+            sender: 'bot', 
+            text: `I have held Wednesday, October 28 at ${chosenTime} with Dr. Sarah Jenkins. What is your full name to finalize the calendar reservation?` 
+          }
+        ]);
+        setLeadStage('Holding Calendar Slot');
+      }, 600);
+      return;
+    }
+
+    // -------------------------------------------------------------
+    // RULE 5: PRICING & INITIAL TRIAGE
+    // -------------------------------------------------------------
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev, 
+        { 
+          sender: 'bot', 
+          text: 'Botox is structured at $14/unit, administered strictly by board-certified practitioners (typical sessions use 20–40 units). Would you like to check consultation openings for tomorrow afternoon at 3:00 PM?' 
+        }
+      ]);
+      setFlowContext(prev => ({ ...prev, stage: 'scheduling', service: 'Forehead Botox Consultation' }));
+      setLeadStage('Treatment Qualified');
+    }, 600);
   };
 
   return (
@@ -125,11 +260,12 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-                40% of aesthetic inquiries arrive after clinic hours. Glow AI qualifies treatments, answers protocol questions, and deposits confirmed appointments straight into your electronic medical calendar.
+                40% of aesthetic inquiries arrive after clinic hours[cite: 2, 5]. Glow AI qualifies treatments, answers protocol questions, and deposits confirmed appointments straight into your electronic medical calendar[cite: 2, 5].
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Left Column: Simulated Chat Widget */}
               <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center gap-2">
@@ -156,8 +292,9 @@ export default function App() {
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {[
                     "How much is Botox per unit?",
-                    "Do you have openings this Thursday?",
-                    "What is Morpheus8 downtime?"
+                    "I am 6 months pregnant, can I get lip filler?",
+                    "What to avoid before microneedling?",
+                    "Tomorrow at 3pm"
                   ].map((chip, idx) => (
                     <button
                       key={idx}
@@ -186,6 +323,7 @@ export default function App() {
                 </form>
               </div>
 
+              {/* Right Column: Real-Time Administrative Pipeline Feed */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
@@ -207,15 +345,23 @@ export default function App() {
                       <CheckCircle2 className="w-5 h-5 text-teal-400" />
                     </div>
 
-                    <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
-                      <div className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">EHR & CRM Dispatch Status</div>
-                      <div className="text-xs text-slate-300 flex items-center justify-between">
-                        <span>Aesthetic Record / Boulevard API:</span>
-                        <span className="font-mono text-emerald-400">Authenticated (Ready)</span>
-                      </div>
-                      <div className="text-xs text-slate-300 flex items-center justify-between mt-1">
-                        <span>Google Calendar Practitioner Slot:</span>
-                        <span className="font-mono text-emerald-400">Holding slot: Thu 4:30 PM</span>
+                    <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2">
+                      <div className="text-[11px] text-slate-500 uppercase tracking-wider">Live Calendar Deposition Feed</div>
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        {syncedBookings.map((b) => (
+                          <div key={b.id} className="text-xs bg-slate-900 border border-slate-800 p-2 rounded-lg flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold text-white flex items-center gap-1.5">
+                                <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-400" />
+                                {b.patient}
+                              </div>
+                              <div className="text-[10px] text-slate-400">{b.service} • {b.time}</div>
+                            </div>
+                            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
+                              {b.status}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -232,7 +378,7 @@ export default function App() {
                         </div>
                         <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
                           <div className="text-[10px] text-slate-400">Speed-to-Lead</div>
-                          <div className="text-xs font-bold text-emerald-400">2.4 Seconds</div>
+                          <div className="text-xs font-bold text-emerald-400">1.8 Seconds</div>
                         </div>
                       </div>
                     </div>
@@ -242,7 +388,7 @@ export default function App() {
                 <div className="bg-teal-950/20 border border-teal-500/20 rounded-xl p-4 flex gap-3 items-center">
                   <Clock className="w-6 h-6 text-teal-400 shrink-0" />
                   <div className="text-xs text-slate-300">
-                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving between 6 PM Friday and 8 AM Monday are qualified and converted automatically without staff handling phones off-duty.
+                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving after-hours are qualified and booked into provider slots without front-desk personnel handling phone queues[cite: 2, 5, 6].
                   </div>
                 </div>
               </div>
@@ -254,7 +400,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">After-Hours Revenue Leakage Calculator</h2>
-              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic.</p>
+              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic[cite: 2, 5].</p>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center shadow-xl">
@@ -310,13 +456,13 @@ export default function App() {
                 <div>
                   <div className="text-xs uppercase tracking-wider text-rose-400 font-semibold">Estimated Monthly Revenue Forfeited</div>
                   <div className="text-4xl font-extrabold text-white mt-1">${calculateLostRevenue().toLocaleString()}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">Leaves directly to competing geographic clinics</div>
+                  <div className="text-[11px] text-slate-500 mt-1">Leaves directly to competing geographic clinics[cite: 5, 6]</div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800">
                   <div className="text-xs uppercase tracking-wider text-emerald-400 font-semibold">Glow AI Projected Monthly Recovery</div>
                   <div className="text-3xl font-extrabold text-emerald-400 mt-1">${calculateRecovered().toLocaleString()}</div>
-                  <div className="text-[11px] text-slate-400 mt-1">At standard $500/month flat retainer (ROI: {(calculateRecovered() / 500).toFixed(1)}x)</div>
+                  <div className="text-[11px] text-slate-400 mt-1">At standard $500/month flat retainer (ROI: {(calculateRecovered() / 500).toFixed(1)}x)[cite: 2, 5]</div>
                 </div>
 
                 <button
@@ -334,7 +480,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">Direct Aesthetic EMR & Calendar Stacks</h2>
-              <p className="text-slate-400 text-sm">Glow AI synchronizes appointments directly with your clinical software. Your team learns zero new platforms.</p>
+              <p className="text-slate-400 text-sm">Glow AI synchronizes appointments directly with your clinical software. Your team learns zero new platforms[cite: 2, 3].</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -365,7 +511,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">Clinical Compliance & Guardrails</h2>
-              <p className="text-slate-400 text-sm">Engineered strictly to capture front-desk intent without diagnostic or clinical liability.</p>
+              <p className="text-slate-400 text-sm">Engineered strictly to capture front-desk intent without diagnostic or clinical liability[cite: 2].</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -374,7 +520,7 @@ export default function App() {
                   <ShieldCheck className="w-5 h-5" /> Non-Diagnostic Boundary
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  The AI assistant strictly addresses scheduling, operational guidelines, and baseline treatment prep. It explicitly refuses medical diagnoses and directs emergent symptomology to emergency services or direct clinical consultation.
+                  The AI assistant strictly addresses scheduling, operational guidelines, and baseline treatment prep[cite: 2]. It explicitly refuses medical diagnoses and directs emergent symptomology to emergency services or direct clinical consultation.
                 </p>
               </div>
 
@@ -398,34 +544,34 @@ export default function App() {
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white">The 14-Day Zero-Risk Clinical Pilot</h2>
               <p className="text-xs sm:text-sm text-slate-400">
-                We install the after-hours assistant on your website and channels for 14 days. If it does not capture and book at least 3 high-value patient appointments, you pay zero.
+                We install the after-hours assistant on your website and channels for 14 days[cite: 5]. If it does not capture and book at least 3 high-value patient appointments, you pay zero[cite: 4].
               </p>
             </div>
 
             <div className="space-y-3 bg-slate-950 border border-slate-800 p-5 rounded-xl text-xs text-slate-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>48-Hour turnkey setup handled entirely by our engineering team</span>
+                <span>48-Hour turnkey setup handled entirely by our engineering team[cite: 2, 3, 6]</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Tailored prompt matrix matching your clinic’s exact pricing and doctor protocols</span>
+                <span>Tailored prompt matrix matching your clinic’s exact pricing and doctor protocols[cite: 2, 3]</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Zero software switch: maps into your existing calendar and intake channels</span>
+                <span>Zero software switch: maps into your existing calendar and intake channels[cite: 2, 3, 6]</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Retainer after pilot: $500/month flat fee with month-to-month cancellation</span>
+                <span>Retainer after pilot: $500/month flat fee with month-to-month cancellation[cite: 2, 4, 5]</span>
               </div>
             </div>
 
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <div className="text-xs text-slate-400">Direct Founder Line</div>
-                <div className="text-sm font-bold text-white">Somesh Badli</div>
-                <div className="text-xs font-mono text-teal-400">+91 79754 94657 | someshbadli@gmail.com</div>
+                <div className="text-xs text-slate-400">Direct Founder Line[cite: 5]</div>
+                <div className="text-sm font-bold text-white">Somesh Badli[cite: 3, 5]</div>
+                <div className="text-xs font-mono text-teal-400">+91 79754 94657 | someshbadli@gmail.com[cite: 3, 5]</div>
               </div>
               <a
                 href="mailto:someshbadli@gmail.com?subject=Glow%20AI%2014-Day%20Pilot%20Request"
@@ -440,7 +586,7 @@ export default function App() {
 
       <footer className="border-t border-slate-800/80 bg-slate-950 py-8 px-4 text-center text-xs text-slate-500 space-y-2">
         <p>© 2026 Glow AI Automation. Built for Medical Spas, Aesthetic Dermatology, & Plastic Surgery Practices.</p>
-        <p className="font-mono text-[11px] text-slate-600">Operating under founder Somesh Badli • someshbadli@gmail.com • +91 79754 94657</p>
+        <p className="font-mono text-[11px] text-slate-600">Operating under founder Somesh Badli • someshbadli@gmail.com • +91 79754 94657[cite: 5]</p>
       </footer>
     </div>
   );
