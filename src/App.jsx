@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -7,8 +7,46 @@ import {
   Send, 
   ShieldCheck, 
   Lock,
-  CalendarCheck2
+  CalendarCheck2,
+  MailCheck,
+  Bot
 } from 'lucide-react';
+
+// =========================================================================
+// GROQ & WEBHOOK CONFIGURATION
+// =========================================================================
+const GROQ_API_KEY = "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";
+const MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/4wjnnmgf7kem4kfjs1pe5i7s7f55y816";
+
+const SYSTEM_PROMPT = `
+You are the AI Front-Desk Concierge for Radiance Aesthetic Institute, a premier US medical spa led by Dr. Sarah Jenkins.
+Your role is to warmly answer patient inquiries, triage treatments, provide pricing and prep instructions, and book consultations.
+
+CLINICAL & OPERATIONAL RULES:
+1. PRICING & SERVICES:
+   - Botox / Dysport: $14/unit (typical treatments use 20–40 units depending on target areas).
+   - Dermal Fillers (Juvederm/Restylane): $650–$800 per syringe.
+   - Morpheus8 RF Microneedling: $850/session (minimal downtime: 24–48 hours mild erythema).
+   - Consultations: Complimentary 15-minute diagnostic assessments.
+
+2. CLINICAL SAFETY (STRICT GUARDRAIL):
+   - PREGNANCY / NURSING: Elective neurotoxin injectables (Botox), dermal fillers, and aggressive ablative lasers are STRICTLY CONTRAINDICATED during pregnancy and breastfeeding.
+   - If a patient mentions pregnancy or nursing, you MUST NOT book them for injectables. Suggest a pregnancy-safe medical facial instead or invite them for a consultation post-delivery.
+
+3. PRE-TREATMENT PREP:
+   - Advise patients to avoid blood thinners (aspirin, ibuprofen, alcohol), high-dose vitamin E, and active retinoids 48–72 hours prior to injectable or microneedling treatments.
+
+4. COMMUNICATION CONSTRAINTS (CRITICAL):
+   - NEVER say "dispatched to your mobile" or promise text messages / SMS.
+   - Confirm bookings strictly on-screen and state that an email confirmation with pre-visit intake forms has been dispatched to their email address.
+
+5. CONVERSATION TO BOOKING PROGRESSION:
+   - When a patient expresses interest in booking or asks for open times, offer: "Wednesday, October 28 at 3:00 PM" or "Thursday at 2:30 PM".
+   - Collect their Full Name and Email address to finalize the reservation.
+   - Once you have the patient's Intent, Appointment Time, Full Name, and Email, confirm the reservation clearly and append this hidden machine tag at the very end of your response:
+     [BOOKING_READY: Name | Email | Service | SlotTime]
+     Example: [BOOKING_READY: Rupa Pai | rupa@example.com | Forehead Botox Consultation | 2026-10-28 15:00]
+`;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('simulation');
@@ -16,27 +54,20 @@ export default function App() {
     { sender: 'bot', text: 'Hi there! Welcome to Radiance Aesthetic Institute. Are you interested in scheduling an appointment or inquiring about our laser and injectable treatments?' }
   ]);
   const [userInput, setUserInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [leadStage, setLeadStage] = useState('Inquiry Capture');
-
-  // Conversational Flow State
-  const [flowContext, setFlowContext] = useState({
-    stage: 'greeting', // 'greeting' | 'pricing' | 'scheduling' | 'awaiting_name' | 'confirmed'
-    service: 'Neurotoxin / Facial Assessment',
-    requestedDateDisplay: 'Wednesday, Oct 28',
-    requestedTimeDisplay: '3:00 PM',
-    isoSlotTime: '2026-10-28 15:00', // Pre-formatted for Google Calendar ISO parsing
-    patientName: ''
-  });
+  const chatBottomRef = useRef(null);
 
   // Real-Time Calendar Pipeline Feed State
   const [syncedBookings, setSyncedBookings] = useState([
     {
       id: 1,
       patient: 'Elena Rostova',
+      email: 'elena.rostova@example.com',
       service: 'Morpheus8 Consultation',
       time: 'Wed, Oct 28 • 11:30 AM',
-      status: 'Confirmed (EHR Ingested)',
-      source: 'Glow AI Web Concierge'
+      status: 'Confirmed (EHR + Email Synced)',
+      source: 'Glow AI Autonomous Concierge'
     }
   ]);
 
@@ -44,6 +75,10 @@ export default function App() {
   const [monthlyLeads, setMonthlyLeads] = useState(120);
   const [averageTicket, setAverageTicket] = useState(950);
   const [dropoffRate, setDropoffRate] = useState(40);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const calculateLostRevenue = () => {
     const afterHoursDropoff = (monthlyLeads * (dropoffRate / 100));
@@ -55,156 +90,110 @@ export default function App() {
     return Math.round(lost * 0.35);
   };
 
-  const handleSend = (e) => {
+  const triggerMakeWebhook = (bookingData) => {
+    fetch(MAKE_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        patient_name: bookingData.patient,
+        patient_email: bookingData.email,
+        service: bookingData.service,
+        slot_time: bookingData.time,
+        notes: 'Triaged via Glow AI Autonomous Concierge (Llama 3.3 Engine)',
+        source: 'https://glowai-pearl.vercel.app'
+      })
+    }).catch(err => console.log('Webhook silent dispatch error:', err));
+  };
+
+  const handleSend = async (e) => {
     e.preventDefault();
-    if (!userInput.trim()) return;
+    if (!userInput.trim() || isLoading) return;
 
     const userText = userInput.trim();
-    setMessages(prev => [...prev, { sender: 'user', text: userText }]);
     setUserInput('');
+    setIsLoading(true);
 
-    const query = userText.toLowerCase();
+    const updatedConversation = [...messages, { sender: 'user', text: userText }];
+    setMessages(updatedConversation);
 
-    // -------------------------------------------------------------
-    // RULE 1: CLINICAL CONTRAINDICATION (Pregnancy / Nursing)
-    // -------------------------------------------------------------
-    if (query.includes('pregnant') || query.includes('pregnancy') || query.includes('nursing') || query.includes('breastfeed')) {
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev, 
-          { 
-            sender: 'bot', 
-            text: 'For clinical safety, elective injectables (such as lip fillers or Botox) and deep laser resurfacing cannot be administered during pregnancy or while breastfeeding. We would love to welcome you for a pregnancy-safe medical facial, or reserve a consultation for after your delivery. Would you like to check facial options?' 
-          }
-        ]);
-        setLeadStage('Screened: Clinical Contraindication');
-      }, 600);
-      return;
-    }
+    try {
+      // Build conversation history for Groq
+      const apiMessages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...updatedConversation.map(m => ({
+          role: m.sender === 'user' ? 'user' : 'assistant',
+          content: m.text
+        }))
+      ];
 
-    // -------------------------------------------------------------
-    // RULE 2: PRE-TREATMENT PROTOCOLS (Microneedling / Botox Prep)
-    // -------------------------------------------------------------
-    if (query.includes('avoid') || query.includes('prep') || query.includes('preparation') || query.includes('downtime')) {
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev, 
-          { 
-            sender: 'bot', 
-            text: 'Clinical Prep Guidelines: Please discontinue active retinoids, AHA/BHAs, direct sun exposure, and blood thinners (aspirin, ibuprofen, alcohol) 48–72 hours prior to treatment. Would you like to check practitioner availability for Wednesday afternoon?' 
-          }
-        ]);
-        setLeadStage('Protocol Qualified');
-      }, 600);
-      return;
-    }
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: apiMessages,
+          temperature: 0.3,
+          max_tokens: 350
+        })
+      });
 
-    // -------------------------------------------------------------
-    // RULE 3: NAME CAPTURE -> IMMEDIATE ON-SCREEN BOOKING & MAKE.COM DISPATCH
-    // -------------------------------------------------------------
-    if (
-      flowContext.stage === 'awaiting_name' || 
-      query.includes('name is') || 
-      query.includes('rupa') ||
-      (flowContext.stage === 'scheduling' && userText.split(' ').length <= 4 && !query.includes('pm') && !query.includes('am'))
-    ) {
-      const extractedName = userText.replace(/my name is/i, '').replace(/i am/i, '').trim();
-      const patient = extractedName.length > 0 ? (extractedName.charAt(0).toUpperCase() + extractedName.slice(1)) : 'Rupa Pai';
-      const slotDisplay = `${flowContext.requestedDateDisplay} • ${flowContext.requestedTimeDisplay}`;
+      const data = await response.json();
+      let replyText = data.choices?.[0]?.message?.content || 
+        "I would be delighted to coordinate that for you. Would you like to check openings for Wednesday, Oct 28 at 3:00 PM?";
 
-      setTimeout(() => {
-        // Confirmation strictly on-screen (Zero SMS text promises)
-        setMessages(prev => [
-          ...prev, 
-          { 
-            sender: 'bot', 
-            text: `Confirmed, ${patient}! Your diagnostic consultation is reserved for ${slotDisplay}. Your appointment has been written directly to the clinic calendar. Your pre-visit guidelines are displayed below.` 
-          }
-        ]);
+      // Check for the machine booking tag
+      if (replyText.includes('[BOOKING_READY:')) {
+        const bookingMatch = replyText.match(/\[BOOKING_READY:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]/);
+        
+        // Strip the machine tag so the patient never sees it
+        replyText = replyText.replace(/\[BOOKING_READY:.*?\]/, '').trim();
 
-        // Immediate UI administrative dashboard update
-        const newBooking = {
-          id: Date.now(),
-          patient: patient,
-          service: flowContext.service,
-          time: slotDisplay,
-          status: 'Confirmed (EHR Ingested)',
-          source: 'Glow AI Web Concierge'
-        };
+        if (bookingMatch) {
+          const patientName = bookingMatch[1].trim();
+          const patientEmail = bookingMatch[2].trim();
+          const service = bookingMatch[3].trim();
+          const slotTime = bookingMatch[4].trim();
 
-        setSyncedBookings(prev => [newBooking, ...prev]);
-        setLeadStage('Direct Calendar Booking Confirmed');
-        setFlowContext(prev => ({ ...prev, stage: 'confirmed', patientName: patient }));
+          const newBooking = {
+            id: Date.now(),
+            patient: patientName,
+            email: patientEmail,
+            service: service,
+            time: slotTime,
+            status: 'Confirmed (EHR + Email Synced)',
+            source: 'Glow AI Autonomous Concierge'
+          };
 
-        // ASYNCHRONOUS REAL-TIME DISPATCH TO MAKE.COM WEBHOOK
-        fetch('https://hook.eu1.make.com/4wjnnmgf7kem4kfjs1pe5i7s7f55y816', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_name: patient,
-            service: flowContext.service,
-            slot_time: flowContext.isoSlotTime, // Formatted for Google Calendar: '2026-10-28 15:00'
-            display_time: slotDisplay,
-            notes: 'Triaged via Glow AI Web Concierge',
-            source: 'https://glowai-pearl.vercel.app'
-          })
-        }).catch(err => console.log('Silent calendar sync dispatch error:', err));
+          setSyncedBookings(prev => [newBooking, ...prev]);
+          setLeadStage('Direct Calendar Booking Confirmed');
+          triggerMakeWebhook(newBooking);
+        }
+      } else if (replyText.toLowerCase().includes('contraindicated') || replyText.toLowerCase().includes('pregnancy')) {
+        setLeadStage('Screened: Clinical Safety Flag');
+      } else if (replyText.toLowerCase().includes('email') || replyText.toLowerCase().includes('name')) {
+        setLeadStage('Collecting Contact Credentials');
+      } else {
+        setLeadStage('Engaged Triage');
+      }
 
-      }, 700);
-      return;
-    }
-
-    // -------------------------------------------------------------
-    // RULE 4: DATE & TIME SCHEDULING COORDINATION
-    // -------------------------------------------------------------
-    if (
-      query.includes('28') || 
-      query.includes('october') || 
-      query.includes('tomorrow') || 
-      query.includes('afternoon') || 
-      query.includes('3pm') || 
-      query.includes('thursday') || 
-      query.includes('book') || 
-      query.includes('yes')
-    ) {
-      const chosenTime = query.includes('3') ? '3:00 PM' : '2:30 PM';
-      const isoTime = query.includes('3') ? '2026-10-28 15:00' : '2026-10-28 14:30';
-
-      setFlowContext(prev => ({ 
-        ...prev, 
-        stage: 'awaiting_name', 
-        requestedDateDisplay: 'Wednesday, Oct 28', 
-        requestedTimeDisplay: chosenTime,
-        isoSlotTime: isoTime
-      }));
-
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev, 
-          { 
-            sender: 'bot', 
-            text: `I have held Wednesday, October 28 at ${chosenTime} with Dr. Sarah Jenkins. What is your full name to finalize the calendar reservation?` 
-          }
-        ]);
-        setLeadStage('Holding Calendar Slot');
-      }, 600);
-      return;
-    }
-
-    // -------------------------------------------------------------
-    // RULE 5: PRICING & DEFAULT TRIAGE
-    // -------------------------------------------------------------
-    setTimeout(() => {
+      setMessages(prev => [...prev, { sender: 'bot', text: replyText }]);
+    } catch (err) {
+      console.error('Groq inference error:', err);
+      // Fallback
       setMessages(prev => [
         ...prev, 
         { 
           sender: 'bot', 
-          text: 'Botox is structured at $14/unit, administered strictly by board-certified practitioners (typical sessions use 20–40 units). Would you like to check consultation openings for tomorrow afternoon at 3:00 PM?' 
+          text: 'Botox is structured at $14/unit (typically 20–40 units per session). Would you prefer a consultation slot Wednesday, Oct 28 at 3:00 PM or Thursday at 2:30 PM?' 
         }
       ]);
-      setFlowContext(prev => ({ ...prev, stage: 'scheduling', service: 'Forehead Botox Consultation' }));
-      setLeadStage('Treatment Qualified');
-    }, 600);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -279,17 +268,20 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-                40% of aesthetic inquiries arrive after clinic hours[cite: 2, 7]. Glow AI qualifies treatments, answers protocol questions, and deposits confirmed appointments straight into your electronic medical calendar[cite: 2, 7].
+                40% of aesthetic inquiries arrive after clinic hours[cite: 8]. Glow AI qualifies treatments, answers complex protocol questions via LLM intelligence, deposits confirmed appointments straight into your electronic medical calendar, and dispatches instant confirmations[cite: 8].
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: Mobile Simulator */}
+              {/* Left Column: AI Simulator */}
               <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-slate-200">Live Client View (Simulated Widget)</span>
+                    <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      <Bot className="w-4 h-4 text-teal-400" />
+                      Live Autonomous Agent (Llama 3.3 Engine)
+                    </span>
                   </div>
                   <span className="text-[11px] font-mono text-slate-400">Target: Radiance MedSpa</span>
                 </div>
@@ -297,7 +289,7 @@ export default function App() {
                 <div className="h-80 overflow-y-auto space-y-3 pr-2 mb-4 scrollbar-thin">
                   {messages.map((m, idx) => (
                     <div key={idx} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[82%] text-xs p-3 rounded-xl leading-relaxed ${
+                      <div className={`max-w-[85%] text-xs p-3 rounded-xl leading-relaxed ${
                         m.sender === 'user'
                           ? 'bg-teal-600 text-white rounded-br-none shadow-md'
                           : 'bg-slate-800/90 text-slate-200 border border-slate-700/60 rounded-bl-none'
@@ -306,13 +298,21 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-slate-800/90 text-teal-400 border border-slate-700/60 text-xs p-3 rounded-xl rounded-bl-none animate-pulse flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5" /> Clinical Concierge is thinking...
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatBottomRef} />
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {[
                     "How much is Botox per unit?",
+                    "Can I do Morpheus8 if I have melasma?",
                     "I am 6 months pregnant, can I get lip filler?",
-                    "What to avoid before microneedling?",
                     "Tomorrow at 3pm"
                   ].map((chip, idx) => (
                     <button
@@ -330,12 +330,13 @@ export default function App() {
                     type="text"
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
-                    placeholder="Type an inquiry or pick a sample question above..."
+                    placeholder="Ask any aesthetic question or type to book..."
                     className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
                   />
                   <button
                     type="submit"
-                    className="bg-teal-500 hover:bg-teal-400 text-slate-950 px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition"
+                    disabled={isLoading}
+                    className="bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
@@ -365,16 +366,19 @@ export default function App() {
                     </div>
 
                     <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2">
-                      <div className="text-[11px] text-slate-500 uppercase tracking-wider">Live Calendar Deposition Feed</div>
+                      <div className="text-[11px] text-slate-500 uppercase tracking-wider">Live Calendar & Email Dispatch Feed</div>
                       <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                         {syncedBookings.map((b) => (
-                          <div key={b.id} className="text-xs bg-slate-900 border border-slate-800 p-2 rounded-lg flex items-center justify-between">
+                          <div key={b.id} className="text-xs bg-slate-900 border border-slate-800 p-2.5 rounded-lg flex items-center justify-between">
                             <div>
                               <div className="font-semibold text-white flex items-center gap-1.5">
                                 <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-400" />
                                 {b.patient}
                               </div>
-                              <div className="text-[10px] text-slate-400">{b.service} • {b.time}</div>
+                              <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                <MailCheck className="w-3 h-3 text-teal-400" /> {b.email || 'elena.rostova@example.com'}
+                              </div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">{b.service} • {b.time}</div>
                             </div>
                             <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
                               {b.status}
@@ -397,7 +401,7 @@ export default function App() {
                         </div>
                         <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
                           <div className="text-[10px] text-slate-400">Speed-to-Lead</div>
-                          <div className="text-xs font-bold text-emerald-400">1.8 Seconds</div>
+                          <div className="text-xs font-bold text-emerald-400">&lt; 1 Second</div>
                         </div>
                       </div>
                     </div>
@@ -407,7 +411,7 @@ export default function App() {
                 <div className="bg-teal-950/20 border border-teal-500/20 rounded-xl p-4 flex gap-3 items-center">
                   <Clock className="w-6 h-6 text-teal-400 shrink-0" />
                   <div className="text-xs text-slate-300">
-                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving after-hours are qualified and booked directly onto provider schedules without staff handling phone queues[cite: 2, 7, 8].
+                    <strong className="text-white">Zero Receptionist Workload:</strong> Inquiries arriving after-hours are qualified via AI, booked directly onto provider schedules, and confirmed via email without staff handling phone queues[cite: 8].
                   </div>
                 </div>
               </div>
@@ -419,7 +423,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">After-Hours Revenue Leakage Calculator</h2>
-              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic[cite: 2, 7].</p>
+              <p className="text-slate-400 text-sm">Calculate how much high-margin procedural income your clinic forfeits due to missed after-hours and weekend traffic[cite: 8].</p>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center shadow-xl">
@@ -475,13 +479,13 @@ export default function App() {
                 <div>
                   <div className="text-xs uppercase tracking-wider text-rose-400 font-semibold">Estimated Monthly Revenue Forfeited</div>
                   <div className="text-4xl font-extrabold text-white mt-1">${calculateLostRevenue().toLocaleString()}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">Leaves directly to competing geographic clinics[cite: 7, 8]</div>
+                  <div className="text-[11px] text-slate-500 mt-1">Leaves directly to competing geographic clinics</div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800">
                   <div className="text-xs uppercase tracking-wider text-emerald-400 font-semibold">Glow AI Projected Monthly Recovery</div>
                   <div className="text-3xl font-extrabold text-emerald-400 mt-1">${calculateRecovered().toLocaleString()}</div>
-                  <div className="text-[11px] text-slate-400 mt-1">At standard $500/month flat retainer (ROI: {(calculateRecovered() / 500).toFixed(1)}x)[cite: 2, 7]</div>
+                  <div className="text-[11px] text-slate-400 mt-1">At standard $500/month flat retainer (ROI: {(calculateRecovered() / 500).toFixed(1)}x)[cite: 8]</div>
                 </div>
 
                 <button
@@ -499,7 +503,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">Direct Aesthetic EMR & Calendar Stacks</h2>
-              <p className="text-slate-400 text-sm">Glow AI synchronizes appointments directly with your clinical software. Your team learns zero new platforms[cite: 2, 3].</p>
+              <p className="text-slate-400 text-sm">Glow AI synchronizes appointments directly with your clinical software. Your team learns zero new platforms.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -530,7 +534,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold text-white">Clinical Compliance & Guardrails</h2>
-              <p className="text-slate-400 text-sm">Engineered strictly to capture front-desk intent without diagnostic or clinical liability[cite: 2].</p>
+              <p className="text-slate-400 text-sm">Engineered strictly to capture front-desk intent without diagnostic or clinical liability.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -539,7 +543,7 @@ export default function App() {
                   <ShieldCheck className="w-5 h-5" /> Non-Diagnostic Boundary
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  The AI assistant strictly addresses scheduling, operational guidelines, and baseline treatment prep[cite: 2]. It explicitly refuses medical diagnoses and directs emergent symptomology to emergency services or direct clinical consultation.
+                  The AI assistant strictly addresses scheduling, operational guidelines, and baseline treatment prep. It explicitly refuses medical diagnoses and directs emergent symptomology to emergency services or direct clinical consultation.
                 </p>
               </div>
 
@@ -563,34 +567,34 @@ export default function App() {
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white">The 14-Day Zero-Risk Clinical Pilot</h2>
               <p className="text-xs sm:text-sm text-slate-400">
-                We install the after-hours assistant on your website and channels for 14 days[cite: 7]. If it does not capture and book at least 3 high-value patient appointments, you pay zero[cite: 4].
+                We install the after-hours assistant on your website and channels for 14 days. If it does not capture and book at least 3 high-value patient appointments, you pay zero.
               </p>
             </div>
 
             <div className="space-y-3 bg-slate-950 border border-slate-800 p-5 rounded-xl text-xs text-slate-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>48-Hour turnkey setup handled entirely by our engineering team[cite: 2, 3, 8]</span>
+                <span>48-Hour turnkey setup handled entirely by our engineering team</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Tailored prompt matrix matching your clinic’s exact pricing and doctor protocols[cite: 2, 3]</span>
+                <span>Tailored prompt matrix matching your clinic’s exact pricing and doctor protocols</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Zero software switch: maps into your existing calendar and intake channels[cite: 2, 3, 8]</span>
+                <span>Zero software switch: maps into your existing calendar and intake channels</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                <span>Retainer after pilot: $500/month flat fee with month-to-month cancellation[cite: 2, 4, 7]</span>
+                <span>Retainer after pilot: $500/month flat fee with month-to-month cancellation[cite: 8]</span>
               </div>
             </div>
 
             <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <div className="text-xs text-slate-400">Direct Founder Line[cite: 7]</div>
-                <div className="text-sm font-bold text-white">Somesh Badli[cite: 3, 7]</div>
-                <div className="text-xs font-mono text-teal-400">+91 79754 94657 | someshbadli@gmail.com[cite: 3, 7]</div>
+                <div className="text-xs text-slate-400">Direct Founder Line</div>
+                <div className="text-sm font-bold text-white">Somesh Badli[cite: 8]</div>
+                <div className="text-xs font-mono text-teal-400">+91 79754 94657 | someshbadli@gmail.com[cite: 8]</div>
               </div>
               <a
                 href="mailto:someshbadli@gmail.com?subject=Glow%20AI%2014-Day%20Pilot%20Request"
@@ -605,7 +609,7 @@ export default function App() {
 
       <footer className="border-t border-slate-800/80 bg-slate-950 py-8 px-4 text-center text-xs text-slate-500 space-y-2">
         <p>© 2026 Glow AI Automation. Built for Medical Spas, Aesthetic Dermatology, & Plastic Surgery Practices.</p>
-        <p className="font-mono text-[11px] text-slate-600">Operating under founder Somesh Badli • someshbadli@gmail.com • +91 79754 94657[cite: 7]</p>
+        <p className="font-mono text-[11px] text-slate-600">Operating under founder Somesh Badli • someshbadli@gmail.com • +91 79754 94657[cite: 8]</p>
       </footer>
     </div>
   );
