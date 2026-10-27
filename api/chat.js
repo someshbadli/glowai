@@ -1,17 +1,9 @@
-// api/chat.js - Vercel Serverless API Proxy for Groq
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+// api/chat.js - Vercel Edge Function for Zero-Latency Llama 3.3
+export const config = {
+  runtime: 'edge',
+};
 
-  const { messages } = req.body;
-  const apiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({ error: 'Missing Groq API Key in environment variables.' });
-  }
-
-  const SYSTEM_PROMPT = `
+const SYSTEM_PROMPT = `
 You are the AI Front-Desk Concierge for Radiance Aesthetic Institute led by Dr. Sarah Jenkins.
 CLINICAL & PRICING RULES:
 1. Botox is $14/unit (20-40 units typical). Fillers are $650-$800/syringe. Morpheus8 is $850/session (minimal 24-48 hr downtime).
@@ -25,33 +17,61 @@ CLINICAL & PRICING RULES:
    [BOOKING_READY: Patient Name | Email | Service | Slot Time]
 `;
 
+export default async function handler(req) {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const { messages } = await req.json();
+    const apiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
+
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Groq API Key on server.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey.trim()}`,
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          ...messages
+          ...messages,
         ],
         temperature: 0.3,
-        max_tokens: 350
-      })
+        max_tokens: 350,
+      }),
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return res.status(response.status).json({ error: errText });
+    if (!groqResponse.ok) {
+      const errText = await groqResponse.text();
+      return new Response(
+        JSON.stringify({ error: `Groq upstream error: ${errText}` }),
+        { status: groqResponse.status, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    const data = await response.json();
+    const data = await groqResponse.json();
     const reply = data.choices[0].message.content;
-    return res.status(200).json({ reply });
+
+    return new Response(JSON.stringify({ reply }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal Edge Error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
