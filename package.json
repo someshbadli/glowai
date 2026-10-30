@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.3.3",
+    "googleapis": "^188.0.0",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "resend": "^6.35.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
