@@ -51,17 +51,30 @@ export default async function handler(req, res) {
 
     let gcalEventId = null;
     let gcalErrorMessage = null;
+    let availableCalendars = [];
 
     try {
       const calendar = getCalendarClient();
-      const calendarId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
+      
+      // Discover accessible calendars for the service account
+      const calList = await calendar.calendarList.list();
+      availableCalendars = (calList.data.items || []).map(c => ({ id: c.id, summary: c.summary }));
 
-      // 2:00 PM - 2:30 PM EDT (UTC-4)
+      // Find the shared calendar or fallback to configured ID
+      let targetCalId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
+      const matched = availableCalendars.find(c => c.id === targetCalId || c.summary?.toLowerCase().includes('glow'));
+      if (matched) {
+        targetCalId = matched.id;
+      }
+
+      console.log(`[TARGET_CALENDAR]: ${targetCalId}`);
+
+      // Appointment slot: October 31, 2026 at 2:00 PM EDT (UTC-4)
       const startIso = "2026-10-31T14:00:00-04:00";
       const endIso = "2026-10-31T14:30:00-04:00";
 
       const insertRes = await calendar.events.insert({
-        calendarId: calendarId,
+        calendarId: targetCalId,
         requestBody: {
           summary: `Consultation: ${patient} (${service})`,
           description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nService: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
@@ -91,6 +104,7 @@ export default async function handler(req, res) {
       success: true,
       calendar_event_id: gcalEventId,
       calendar_error: gcalErrorMessage,
+      accessible_calendars: availableCalendars,
       intake: { patient, phone, email, service, time }
     });
   } catch (err) {
