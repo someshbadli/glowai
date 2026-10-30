@@ -16,7 +16,7 @@ function getCalendarClient() {
   const auth = new google.auth.JWT({
     email: email,
     key: key,
-    scopes: ['https://www.googleapis.com/auth/calendar'],
+    scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
   });
 
   return google.calendar({ version: 'v3', auth });
@@ -51,30 +51,18 @@ export default async function handler(req, res) {
 
     let gcalEventId = null;
     let gcalErrorMessage = null;
-    let availableCalendars = [];
 
     try {
       const calendar = getCalendarClient();
-      
-      // Discover accessible calendars for the service account
-      const calList = await calendar.calendarList.list();
-      availableCalendars = (calList.data.items || []).map(c => ({ id: c.id, summary: c.summary }));
+      // Target your calendar ID directly
+      const targetCalId = 'someshbadli@gmail.com';
 
-      // Find the shared calendar or fallback to configured ID
-      let targetCalId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
-      const matched = availableCalendars.find(c => c.id === targetCalId || c.summary?.toLowerCase().includes('glow'));
-      if (matched) {
-        targetCalId = matched.id;
-      }
-
-      console.log(`[TARGET_CALENDAR]: ${targetCalId}`);
-
-      // Appointment slot: October 31, 2026 at 2:00 PM EDT (UTC-4)
+      // Slot: October 31, 2026 at 2:00 PM EDT (UTC-4) -> 11:30 PM IST
       const startIso = "2026-10-31T14:00:00-04:00";
       const endIso = "2026-10-31T14:30:00-04:00";
 
       const insertRes = await calendar.events.insert({
-        calendarId: targetCalId,
+        calendarId: encodeURIComponent(targetCalId),
         requestBody: {
           summary: `Consultation: ${patient} (${service})`,
           description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nService: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
@@ -86,16 +74,16 @@ export default async function handler(req, res) {
       gcalEventId = insertRes.data.id;
     } catch (calErr) {
       gcalErrorMessage = calErr.response?.data?.error?.message || calErr.message;
-      console.error('[GCAL_FAIL]:', gcalErrorMessage);
+      console.error('[GCAL_DIRECT_FAIL]:', gcalErrorMessage);
     }
 
-    // Resend alerts
+    // Resend email notifications
     if (process.env.RESEND_API_KEY) {
       await resend.emails.send({
         from: 'Glow AI Alerts <onboarding@resend.dev>',
         to: 'someshbadli@gmail.com',
         subject: `[New Intake] ${patient} — ${service}`,
-        html: `<p>Patient: <b>${patient}</b> (${phone})<br/>Service: <b>${service}</b><br/>Calendar ID: ${gcalEventId || 'Error: ' + gcalErrorMessage}</p>`
+        html: `<p>New booking: <b>${patient}</b> (${phone})<br/>Service: <b>${service}</b><br/>Calendar ID: ${gcalEventId || 'Error: ' + gcalErrorMessage}</p>`
       }).catch(() => {});
     }
 
@@ -104,7 +92,6 @@ export default async function handler(req, res) {
       success: true,
       calendar_event_id: gcalEventId,
       calendar_error: gcalErrorMessage,
-      accessible_calendars: availableCalendars,
       intake: { patient, phone, email, service, time }
     });
   } catch (err) {
