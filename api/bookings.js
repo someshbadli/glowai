@@ -56,33 +56,41 @@ export default async function handler(req, res) {
       const calendar = getCalendarClient();
       const targetCalId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
 
-      // 2:00 PM - 2:30 PM EDT (UTC-4) -> 11:30 PM - 12:00 AM IST
+      // 1. Explicitly register calendar into Service Account's authorized list
+      try {
+        await calendar.calendarList.insert({
+          requestBody: { id: targetCalId }
+        });
+      } catch (subErr) {
+        // Ignored if already subscribed
+      }
+
+      // 2:00 PM EDT (UTC-4) -> 11:30 PM IST
       const startIso = "2026-10-31T14:00:00-04:00";
       const endIso = "2026-10-31T14:30:00-04:00";
 
-      // Insert directly onto your shared calendar without attendees array
       const insertRes = await calendar.events.insert({
         calendarId: targetCalId,
         requestBody: {
           summary: `Consultation: ${patient} (${service})`,
-          description: `Patient Name: ${patient}\nPhone Number: ${phone}\nPatient Email: ${email}\nRequested Service: ${service}\nAppointment Slot: ${time}\n\nBooked autonomously via Glow AI Receptionist (+1 804-259-1091).`,
+          description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nReason: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
           start: { dateTime: startIso, timeZone: 'America/New_York' },
           end: { dateTime: endIso, timeZone: 'America/New_York' }
         }
       });
+
       gcalEventId = insertRes.data.id;
-    } catch (directInsertErr) {
-      gcalErrorMessage = directInsertErr.response?.data?.error?.message || directInsertErr.message;
-      console.error('[GCAL_ERROR]:', gcalErrorMessage);
+    } catch (insertErr) {
+      gcalErrorMessage = insertErr.response?.data?.error?.message || insertErr.message;
+      console.error('[GCAL_WRITE_ERROR]:', gcalErrorMessage);
     }
 
-    // Resend alerts
     if (process.env.RESEND_API_KEY) {
       await resend.emails.send({
         from: 'Glow AI Alerts <onboarding@resend.dev>',
         to: 'someshbadli@gmail.com',
         subject: `[New Intake] ${patient} — ${service}`,
-        html: `<p>New booking: <b>${patient}</b> (${phone})<br/>Service: <b>${service}</b><br/>Calendar ID: ${gcalEventId || 'Error: ' + gcalErrorMessage}</p>`
+        html: `<p>Booking logged for <b>${patient}</b> (${phone}) - <b>${service}</b>. Calendar Status: ${gcalEventId || 'Error: ' + gcalErrorMessage}</p>`
       }).catch(() => {});
     }
 
