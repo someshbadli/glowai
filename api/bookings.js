@@ -16,7 +16,7 @@ function getCalendarClient() {
   const auth = new google.auth.JWT({
     email: email,
     key: key,
-    scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
+    scopes: ['https://www.googleapis.com/auth/calendar'],
   });
 
   return google.calendar({ version: 'v3', auth });
@@ -54,27 +54,50 @@ export default async function handler(req, res) {
 
     try {
       const calendar = getCalendarClient();
-      // Target your calendar ID directly
-      const targetCalId = 'someshbadli@gmail.com';
+      const targetCalId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
 
-      // Slot: October 31, 2026 at 2:00 PM EDT (UTC-4) -> 11:30 PM IST
+      // Step 1: Ensure target calendar is explicitly registered in Service Account's list
+      try {
+        await calendar.calendarList.insert({
+          requestBody: { id: targetCalId }
+        });
+      } catch (listErr) {
+        // Ignored if already subscribed
+      }
+
       const startIso = "2026-10-31T14:00:00-04:00";
       const endIso = "2026-10-31T14:30:00-04:00";
 
-      const insertRes = await calendar.events.insert({
-        calendarId: encodeURIComponent(targetCalId),
-        requestBody: {
-          summary: `Consultation: ${patient} (${service})`,
-          description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nService: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
-          start: { dateTime: startIso, timeZone: 'America/New_York' },
-          end: { dateTime: endIso, timeZone: 'America/New_York' }
-        }
-      });
-
-      gcalEventId = insertRes.data.id;
+      // Step 2: Attempt insert directly into target calendar
+      try {
+        const insertRes = await calendar.events.insert({
+          calendarId: targetCalId,
+          requestBody: {
+            summary: `Consultation: ${patient} (${service})`,
+            description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nService: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
+            start: { dateTime: startIso, timeZone: 'America/New_York' },
+            end: { dateTime: endIso, timeZone: 'America/New_York' }
+          }
+        });
+        gcalEventId = insertRes.data.id;
+      } catch (directInsertErr) {
+        // Step 3: Fallback - Create on service account's primary calendar and invite target email
+        console.warn('[GCAL_DIRECT_FAILED] Falling back to service account primary calendar:', directInsertErr.message);
+        const fallbackRes = await calendar.events.insert({
+          calendarId: 'primary',
+          requestBody: {
+            summary: `Consultation: ${patient} (${service})`,
+            description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nService: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
+            start: { dateTime: startIso, timeZone: 'America/New_York' },
+            end: { dateTime: endIso, timeZone: 'America/New_York' },
+            attendees: [{ email: targetCalId }]
+          }
+        });
+        gcalEventId = fallbackRes.data.id;
+      }
     } catch (calErr) {
       gcalErrorMessage = calErr.response?.data?.error?.message || calErr.message;
-      console.error('[GCAL_DIRECT_FAIL]:', gcalErrorMessage);
+      console.error('[GCAL_ERROR_FINAL]:', gcalErrorMessage);
     }
 
     // Resend email notifications
