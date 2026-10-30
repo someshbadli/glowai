@@ -1,5 +1,4 @@
 ﻿export default async function handler(req, res) {
-  // Allow cross-origin requests from Vapi and the web client
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -34,21 +33,27 @@
     const phone = patient_phone || 'Unlisted';
     const email = patient_email || 'Unlisted';
     const service = service_name || service_reason || 'Doctor Consultation';
-    const time = start_time || slot_time || 'Next Available Slot';
+    const time = start_time || slot_time || 'Tomorrow at 10:00 AM';
 
     console.log('[AUTONOMOUS RECEPTIONIST INTAKE HIT]');
     console.log(`Clinic: ${clinic_id}`);
     console.log(`Patient: ${patient} | Phone: ${phone} | Email: ${email}`);
     console.log(`Service: ${service} | Time: ${time}`);
 
+    const confirmationSummary = `Consultation reserved for ${patient} for ${service} on ${time}. Logged under ${email}.`;
+
     return res.status(200).json({
+      result: confirmationSummary,
       success: true,
-      message: `Consultation confirmed for ${patient} at ${time}.`,
+      message: confirmationSummary,
       booking_id: `rec_${Date.now()}`,
       intake: { patient, phone, email, service, time }
     });
   } catch (err) {
     console.error('[BOOKING_ERROR]:', err);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ 
+      result: "Failed to record consultation.",
+      error: 'Internal Server Error' 
+    });
   }
 }
