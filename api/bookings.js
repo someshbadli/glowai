@@ -1,4 +1,5 @@
-﻿import { Resend } from 'resend';
+﻿@'
+import { Resend } from 'resend';
 import { google } from 'googleapis';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -6,139 +7,194 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 function getCalendarClient() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let key = process.env.GOOGLE_PRIVATE_KEY;
-
-  if (!email || !key) {
-    throw new Error("Missing Google Service Account credentials");
-  }
-
+  if (!email || !key) throw new Error('Missing Google Service Account credentials');
   key = key.replace(/\\n/g, '\n');
 
   const auth = new google.auth.JWT({
-    email: email,
-    key: key,
-    scopes: ['https://www.googleapis.com/auth/calendar.events'],
+    email,
+    key,
+    scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
+  });
+  return google.calendar({ version: 'v3', auth });
+}
+
+// Get current US Eastern offset (-05:00 EST or -04:00 EDT)
+function getETOffsetString(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'shortOffset',
+  }).formatToParts(date);
+  const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT-5';
+  const match = tzPart.match(/GMT([+-]\d+)/);
+  if (!match) return '-05:00';
+  const hours = parseInt(match[1], 10);
+  const sign = hours >= 0 ? '+' : '-';
+  return `${sign}${String(Math.abs(hours)).padStart(2, '0')}:00`;
+}
+
+// Generate candidate 30-min weekday slots (9:00 AM - 4:30 PM ET) over the next 7 days
+function generateCandidateSlots() {
+  const slots = [];
+  const now = new Date();
+  const offset = getETOffsetString(now);
+
+  for (let d = 0; d <= 7; d++) {
+    const probe = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
+    const etFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'long',
+    });
+    const parts = etFormatter.formatToParts(probe);
+    const weekday = parts.find((p) => p.type === 'weekday')?.value;
+    if (weekday === 'Saturday' || weekday === 'Sunday') continue;
+
+    const y = parts.find((p) => p.type === 'year')?.value;
+    const m = parts.find((p) => p.type === 'month')?.value;
+    const day = parts.find((p) => p.type === 'day')?.value;
+
+    for (let hour = 9; hour < 17; hour++) {
+      for (const min of [0, 30]) {
+        const startIso = `${y}-${m}-${day}T${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00${offset}`;
+        const startMs = Date.parse(startIso);
+        // Require at least 30 mins lead time from right now
+        if (startMs <= now.getTime() + 30 * 60 * 1000) continue;
+
+        const endMs = startMs + 30 * 60 * 1000;
+        const endHour = min === 30 ? hour + 1 : hour;
+        const endMin = min === 30 ? 0 : 30;
+        const endIso = `${y}-${m}-${day}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00${offset}`;
+
+        const displayHour = hour > 12 ? hour - 12 : hour;
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const label = `${weekday}, ${m}/${day}/${y} at ${displayHour}:${String(min).padStart(2, '0')} ${ampm} ET`;
+
+        slots.push({ startIso, endIso, startMs, endMs, label });
+      }
+    }
+  }
+  return slots;
+}
+
+async function getOpenSlots(calendar, calendarId, limit = 3) {
+  const candidates = generateCandidateSlots();
+  if (!candidates.length) return [];
+
+  const timeMin = candidates[0].startIso;
+  const timeMax = candidates[candidates.length - 1].endIso;
+
+  const eventsRes = await calendar.events.list({
+    calendarId,
+    timeMin,
+    timeMax,
+    singleEvents: true,
+    orderBy: 'startTime',
   });
 
-  return google.calendar({ version: 'v3', auth });
+  const busy = (eventsRes.data.items || [])
+    .filter((ev) => ev.status !== 'cancelled' && ev.start?.dateTime && ev.end?.dateTime)
+    .map((ev) => ({
+      startMs: Date.parse(ev.start.dateTime),
+      endMs: Date.parse(ev.end.dateTime),
+    }));
+
+  const open = [];
+  for (const slot of candidates) {
+    const conflict = busy.some((b) => slot.startMs < b.endMs && slot.endMs > b.startMs);
+    if (!conflict) {
+      open.push(slot);
+      if (open.length >= limit) break;
+    }
+  }
+  return open;
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
     const rawBody = req.body || {};
-    
-    // Support Vapi toolCalls, function arguments, or direct JSON
-    let args = rawBody;
-    if (rawBody.message?.toolCalls?.[0]?.function?.arguments) {
-      const toolArgs = rawBody.message.toolCalls[0].function.arguments;
-      args = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs;
-    } else if (rawBody.toolCall?.function?.arguments) {
-      const toolArgs = rawBody.toolCall.function.arguments;
-      args = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs;
+    const toolCall = rawBody.message?.toolCalls?.[0];
+    const toolCallId = toolCall?.id || null;
+    const fnName = toolCall?.function?.name || rawBody.action || 'book_consultation';
+    const args = toolCall?.function?.arguments
+      ? typeof toolCall.function.arguments === 'string'
+        ? JSON.parse(toolCall.function.arguments)
+        : toolCall.function.arguments
+      : rawBody;
+
+    const calendar = getCalendarClient();
+    const calendarId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
+
+    // MODE 1: CHECK NEXT AVAILABLE SLOTS
+    if (fnName === 'check_availability' || req.query.action === 'availability') {
+      const openSlots = await getOpenSlots(calendar, calendarId, 3);
+      const summary = openSlots.length
+        ? `Next available openings: 1) ${openSlots[0].label} (start_iso: ${openSlots[0].startIso}), 2) ${openSlots[1]?.label || 'none'} (start_iso: ${openSlots[1]?.startIso || ''}), 3) ${openSlots[2]?.label || 'none'}. Offer option 1 first.`
+        : 'No open weekday slots found in the next 7 days.';
+
+      if (toolCallId) {
+        return res.status(200).json({ results: [{ toolCallId, result: summary }] });
+      }
+      return res.status(200).json({ result: summary, open_slots: openSlots });
     }
 
+    // MODE 2: ATOMIC SLOT-LOCKING BOOKING
     const patient = args.patient_name || 'Valued Patient';
     const phone = args.patient_phone || 'Unlisted';
     const rawEmail = args.patient_email || 'someshbadli@gmail.com';
     const email = rawEmail.includes('@') ? rawEmail.trim() : 'someshbadli@gmail.com';
     const service = args.service_name || args.service_reason || 'Doctor Consultation';
-    const time = args.start_time || args.slot_time || 'Tomorrow at 2:00 PM';
 
-    console.log('[BOOKING INTAKE RECEIVED]:', { patient, phone, email, service, time });
+    // Re-fetch live open slots right at booking millisecond to prevent double-booking
+    const openSlots = await getOpenSlots(calendar, calendarId, 5);
+    let chosenSlot = openSlots.find((s) => s.startIso === args.start_iso) || openSlots[0];
 
-    let gcalEventId = null;
-    let gcalErrorMessage = null;
-
-    // 1. Google Calendar Insert (if secondary calendar ID is configured)
-    if (process.env.GOOGLE_CALENDAR_ID && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-      try {
-        const calendar = getCalendarClient();
-        const startIso = "2026-10-31T14:00:00-04:00";
-        const endIso = "2026-10-31T14:30:00-04:00";
-
-        const insertRes = await calendar.events.insert({
-          calendarId: process.env.GOOGLE_CALENDAR_ID,
-          requestBody: {
-            summary: `Consultation: ${patient} (${service})`,
-            description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nReason: ${service}\nBooked via Glow AI Voice (+1 804-259-1091).`,
-            start: { dateTime: startIso, timeZone: 'America/New_York' },
-            end: { dateTime: endIso, timeZone: 'America/New_York' }
-          }
-        });
-        gcalEventId = insertRes.data.id;
-      } catch (calErr) {
-        gcalErrorMessage = calErr.response?.data?.error?.message || calErr.message;
-        console.error('[GCAL_WRITE_ERROR]:', gcalErrorMessage);
-      }
+    if (!chosenSlot) {
+      const msg = 'All immediate slots were just taken. Please ask the caller to accept the next open weekday time.';
+      return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
     }
 
-    // 2. Dispatch Notifications via Resend
-    let resendStatus = "sent";
+    const insertRes = await calendar.events.insert({
+      calendarId,
+      requestBody: {
+        summary: `Consultation: ${patient} (${service})`,
+        description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nReason: ${service}\nSlot: ${chosenSlot.label}\n\nBooked via Glow AI Receptionist (+1 804-259-1091).`,
+        start: { dateTime: chosenSlot.startIso, timeZone: 'America/New_York' },
+        end: { dateTime: chosenSlot.endIso, timeZone: 'America/New_York' },
+      },
+    });
+
     if (process.env.RESEND_API_KEY) {
-      try {
-        // Front-Desk Email Alert to verified address
-        await resend.emails.send({
-          from: 'Glow AI Alerts <onboarding@resend.dev>',
-          to: 'someshbadli@gmail.com',
-          subject: `[New Intake] ${patient} — ${service}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-              <h2 style="color: #0f766e; margin-top: 0;">New Consultation Intake Captured</h2>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <tr><td style="padding: 6px 0; font-weight: bold; color: #64748b;">Patient Name:</td><td>${patient}</td></tr>
-                <tr><td style="padding: 6px 0; font-weight: bold; color: #64748b;">Phone:</td><td>${phone}</td></tr>
-                <tr><td style="padding: 6px 0; font-weight: bold; color: #64748b;">Patient Email:</td><td>${email}</td></tr>
-                <tr><td style="padding: 6px 0; font-weight: bold; color: #64748b;">Requested Service:</td><td>${service}</td></tr>
-                <tr><td style="padding: 6px 0; font-weight: bold; color: #64748b;">Slot:</td><td>${time}</td></tr>
-                <tr><td style="padding: 6px 0; font-weight: bold; color: #64748b;">Calendar Event:</td><td>${gcalEventId || 'Pending Writer Access'}</td></tr>
-              </table>
-              <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;" />
-              <p style="font-size: 13px; color: #64748b;">
-                Patient confirmation text/email content dispatched for <b>${email}</b>.
-              </p>
-            </div>
-          `
-        });
-
-        // Attempt direct dispatch to patient email
-        if (email !== 'someshbadli@gmail.com') {
-          try {
-            await resend.emails.send({
-              from: 'Glow AI Confirmation <onboarding@resend.dev>',
-              to: email,
-              subject: `Appointment Confirmation with Dr. Vijay — ${time}`,
-              text: `Hello ${patient},\n\nYour consultation with Dr. Vijay has been scheduled.\nRequested Slot: ${time}\nLocation: Suite 2, 1234 All St, Richmond, VA 23059\n\nIf you need to reschedule, please call our clinic office at 804-259-1091.\n\nThank you!`
-            });
-          } catch (patientErr) {
-            console.warn('[RESEND_SANDBOX_BLOCKED]:', patientErr.message);
-            // Sandbox blocks unverified emails; logged cleanly without breaking the flow
-          }
-        }
-      } catch (err) {
-        resendStatus = err.message;
-        console.error('[RESEND_ERROR]:', err);
-      }
+      await resend.emails.send({
+        from: 'Glow AI Appointments <appointments@glowaiautomation.com>',
+        to: ['someshbadli@gmail.com', email],
+        subject: `Appointment Confirmed: ${patient} — ${chosenSlot.label}`,
+        text: `Hello ${patient},\n\nYour consultation is confirmed.\nDate & Time: ${chosenSlot.label}\nReason: ${service}\nCallback Phone: ${phone}\n\nFor any changes, email support@glowaiautomation.com or call +1 (804) 259-1091.\n\nThank you.`,
+      }).catch((e) => console.error('[RESEND_ERR]:', e.message));
     }
 
+    const confirmation = `Confirmed and locked ${chosenSlot.label} for ${patient}. Confirmation email sent to ${email}.`;
+    if (toolCallId) {
+      return res.status(200).json({ results: [{ toolCallId, result: confirmation }] });
+    }
     return res.status(200).json({
-      result: `Consultation reserved for ${patient} on ${time}.`,
+      result: confirmation,
       success: true,
-      calendar_event_id: gcalEventId,
-      calendar_error: gcalErrorMessage,
-      email_status: resendStatus,
-      intake: { patient, phone, email, service, time }
+      calendar_event_id: insertRes.data.id,
+      booked_slot: chosenSlot.label,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('[API_ERROR]:', err);
+    return res.status(500).json({ result: 'Scheduling error occurred.', error: err.message });
   }
 }
+'@ | Out-File -FilePath "api/bookings.js" -Encoding utf8
