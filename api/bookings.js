@@ -1,38 +1,40 @@
-﻿@'
-import { Resend } from 'resend';
+﻿import { Resend } from 'resend';
 import { google } from 'googleapis';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 function getCalendarClient() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let key = process.env.GOOGLE_PRIVATE_KEY;
-  if (!email || !key) throw new Error('Missing Google Service Account credentials');
-  key = key.replace(/\\n/g, '\n');
+  if (!email || !key) {
+    throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_PRIVATE_KEY in Vercel env');
+  }
+  key = key.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
 
-  const auth = new google.auth.JWT({
+  const auth = new google.auth.JWT(
     email,
+    null,
     key,
-    scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events'],
-  });
+    ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events']
+  );
   return google.calendar({ version: 'v3', auth });
 }
 
-// Get current US Eastern offset (-05:00 EST or -04:00 EDT)
 function getETOffsetString(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    timeZoneName: 'shortOffset',
-  }).formatToParts(date);
-  const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT-5';
-  const match = tzPart.match(/GMT([+-]\d+)/);
-  if (!match) return '-05:00';
-  const hours = parseInt(match[1], 10);
-  const sign = hours >= 0 ? '+' : '-';
-  return `${sign}${String(Math.abs(hours)).padStart(2, '0')}:00`;
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      timeZoneName: 'shortOffset',
+    }).formatToParts(date);
+    const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT-5';
+    const match = tzPart.match(/GMT([+-]\d+)/);
+    if (!match) return '-05:00';
+    const hours = parseInt(match[1], 10);
+    const sign = hours >= 0 ? '+' : '-';
+    return `${sign}${String(Math.abs(hours)).padStart(2, '0')}:00`;
+  } catch {
+    return '-05:00';
+  }
 }
 
-// Generate candidate 30-min weekday slots (9:00 AM - 4:30 PM ET) over the next 7 days
 function generateCandidateSlots() {
   const slots = [];
   const now = new Date();
@@ -40,14 +42,14 @@ function generateCandidateSlots() {
 
   for (let d = 0; d <= 7; d++) {
     const probe = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
-    const etFormatter = new Intl.DateTimeFormat('en-CA', {
+    const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/New_York',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       weekday: 'long',
-    });
-    const parts = etFormatter.formatToParts(probe);
+    }).formatToParts(probe);
+
     const weekday = parts.find((p) => p.type === 'weekday')?.value;
     if (weekday === 'Saturday' || weekday === 'Sunday') continue;
 
@@ -59,7 +61,6 @@ function generateCandidateSlots() {
       for (const min of [0, 30]) {
         const startIso = `${y}-${m}-${day}T${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00${offset}`;
         const startMs = Date.parse(startIso);
-        // Require at least 30 mins lead time from right now
         if (startMs <= now.getTime() + 30 * 60 * 1000) continue;
 
         const endMs = startMs + 30 * 60 * 1000;
@@ -82,13 +83,10 @@ async function getOpenSlots(calendar, calendarId, limit = 3) {
   const candidates = generateCandidateSlots();
   if (!candidates.length) return [];
 
-  const timeMin = candidates[0].startIso;
-  const timeMax = candidates[candidates.length - 1].endIso;
-
   const eventsRes = await calendar.events.list({
     calendarId,
-    timeMin,
-    timeMax,
+    timeMin: candidates[0].startIso,
+    timeMax: candidates[candidates.length - 1].endIso,
     singleEvents: true,
     orderBy: 'startTime',
   });
@@ -121,7 +119,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const rawBody = req.body || {};
+    const rawBody = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const toolCall = rawBody.message?.toolCalls?.[0];
     const toolCallId = toolCall?.id || null;
     const fnName = toolCall?.function?.name || rawBody.action || 'book_consultation';
@@ -135,10 +133,10 @@ export default async function handler(req, res) {
     const calendarId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
 
     // MODE 1: CHECK NEXT AVAILABLE SLOTS
-    if (fnName === 'check_availability' || req.query.action === 'availability') {
+    if (fnName === 'check_availability' || req.query?.action === 'availability') {
       const openSlots = await getOpenSlots(calendar, calendarId, 3);
       const summary = openSlots.length
-        ? `Next available openings: 1) ${openSlots[0].label} (start_iso: ${openSlots[0].startIso}), 2) ${openSlots[1]?.label || 'none'} (start_iso: ${openSlots[1]?.startIso || ''}), 3) ${openSlots[2]?.label || 'none'}. Offer option 1 first.`
+        ? `Next available openings: 1) ${openSlots[0].label} (start_iso: ${openSlots[0].startIso}), 2) ${openSlots[1]?.label || 'none'} (start_iso: ${openSlots[1]?.startIso || ''}), 3) ${openSlots[2]?.label || 'none'} (start_iso: ${openSlots[2]?.startIso || ''}). Offer option 1 first.`
         : 'No open weekday slots found in the next 7 days.';
 
       if (toolCallId) {
@@ -154,9 +152,8 @@ export default async function handler(req, res) {
     const email = rawEmail.includes('@') ? rawEmail.trim() : 'someshbadli@gmail.com';
     const service = args.service_name || args.service_reason || 'Doctor Consultation';
 
-    // Re-fetch live open slots right at booking millisecond to prevent double-booking
     const openSlots = await getOpenSlots(calendar, calendarId, 5);
-    let chosenSlot = openSlots.find((s) => s.startIso === args.start_iso) || openSlots[0];
+    const chosenSlot = openSlots.find((s) => s.startIso === args.start_iso) || openSlots[0];
 
     if (!chosenSlot) {
       const msg = 'All immediate slots were just taken. Please ask the caller to accept the next open weekday time.';
@@ -174,6 +171,7 @@ export default async function handler(req, res) {
     });
 
     if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'Glow AI Appointments <appointments@glowaiautomation.com>',
         to: ['someshbadli@gmail.com', email],
@@ -194,7 +192,10 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[API_ERROR]:', err);
-    return res.status(500).json({ result: 'Scheduling error occurred.', error: err.message });
+    return res.status(200).json({
+      result: `Debug error: ${err.message}`,
+      error: err.message,
+      stack: err.stack?.split('\n')[0],
+    });
   }
 }
-'@ | Out-File -FilePath "api/bookings.js" -Encoding utf8
