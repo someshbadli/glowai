@@ -130,7 +130,9 @@ export default async function handler(req, res) {
       : rawBody;
 
     const calendar = getCalendarClient();
-    const calendarId = process.env.GOOGLE_CALENDAR_ID || 'someshbadli@gmail.com';
+    const calendarId = (process.env.GOOGLE_CALENDAR_ID || '').trim();
+    if (!calendarId) throw new Error('GOOGLE_CALENDAR_ID is empty in Vercel env');
+    try { await calendar.calendarList.insert({ requestBody: { id: calendarId } }); } catch {}
 
     // MODE 1: CHECK NEXT AVAILABLE SLOTS
     if (fnName === 'check_availability' || req.query?.action === 'availability') {
@@ -199,3 +201,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
