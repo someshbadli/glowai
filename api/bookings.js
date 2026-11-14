@@ -2,20 +2,17 @@
 import { google } from 'googleapis';
 
 function getCalendarClient() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  let key = process.env.GOOGLE_PRIVATE_KEY;
-  if (!email || !key) {
-    throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_PRIVATE_KEY in Vercel env');
-  }
-  key = key.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
+  const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+  const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+  const refreshToken = (process.env.GOOGLE_REFRESH_TOKEN || '').trim();
 
-  const auth = new google.auth.JWT(
-    email,
-    null,
-    key,
-    ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events']
-  );
-  return google.calendar({ version: 'v3', auth });
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN in Vercel env');
+  }
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
 function getETOffsetString(date = new Date()) {
@@ -130,11 +127,8 @@ export default async function handler(req, res) {
       : rawBody;
 
     const calendar = getCalendarClient();
-    const calendarId = (process.env.GOOGLE_CALENDAR_ID || '').trim();
-    if (!calendarId) throw new Error('GOOGLE_CALENDAR_ID is empty in Vercel env');
-    try { await calendar.calendarList.insert({ requestBody: { id: calendarId } }); } catch {}
+    const calendarId = (process.env.GOOGLE_CALENDAR_ID || 'primary').trim();
 
-    // MODE 1: CHECK NEXT AVAILABLE SLOTS
     if (fnName === 'check_availability' || req.query?.action === 'availability') {
       const openSlots = await getOpenSlots(calendar, calendarId, 3);
       const summary = openSlots.length
@@ -147,7 +141,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ result: summary, open_slots: openSlots });
     }
 
-    // MODE 2: ATOMIC SLOT-LOCKING BOOKING
     const patient = args.patient_name || 'Valued Patient';
     const phone = args.patient_phone || 'Unlisted';
     const rawEmail = args.patient_email || 'someshbadli@gmail.com';
@@ -201,4 +194,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
