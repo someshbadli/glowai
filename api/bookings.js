@@ -106,6 +106,49 @@ async function getOpenSlots(calendar, calendarId, limit = 3) {
   return open;
 }
 
+async function bookSlotSafely(calendar, calendarId, patient, phone, email, service, preferredStartIso) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const openSlots = await getOpenSlots(calendar, calendarId, 6);
+    const chosenSlot =
+      (attempt === 0 && preferredStartIso ? openSlots.find((s) => s.startIso === preferredStartIso) : null) ||
+      openSlots[0];
+
+    if (!chosenSlot) return null;
+
+    const insertRes = await calendar.events.insert({
+      calendarId,
+      requestBody: {
+        summary: `Consultation: ${patient} (${service})`,
+        description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nReason: ${service}\nSlot: ${chosenSlot.label}\n\nBooked via Glow AI Receptionist (+1 804-259-1091).`,
+        start: { dateTime: chosenSlot.startIso, timeZone: 'America/New_York' },
+        end: { dateTime: chosenSlot.endIso, timeZone: 'America/New_York' },
+      },
+    });
+
+    const createdEvent = insertRes.data;
+
+    // Verify no concurrent request won the exact same time window
+    const verifyRes = await calendar.events.list({
+      calendarId,
+      timeMin: chosenSlot.startIso,
+      timeMax: chosenSlot.endIso,
+      singleEvents: true,
+    });
+
+    const overlapping = (verifyRes.data.items || [])
+      .filter((ev) => ev.status !== 'cancelled' && ev.start?.dateTime && ev.end?.dateTime)
+      .sort((a, b) => Date.parse(a.created || 0) - Date.parse(b.created || 0) || a.id.localeCompare(b.id));
+
+    if (overlapping.length <= 1 || overlapping[0].id === createdEvent.id) {
+      return { event: createdEvent, slot: chosenSlot };
+    }
+
+    // Lost the millisecond race: delete duplicate and retry next open slot
+    await calendar.events.delete({ calendarId, eventId: createdEvent.id }).catch(() => {});
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -147,43 +190,32 @@ export default async function handler(req, res) {
     const email = rawEmail.includes('@') ? rawEmail.trim() : 'someshbadli@gmail.com';
     const service = args.service_name || args.service_reason || 'Doctor Consultation';
 
-    const openSlots = await getOpenSlots(calendar, calendarId, 5);
-    const chosenSlot = openSlots.find((s) => s.startIso === args.start_iso) || openSlots[0];
+    const booked = await bookSlotSafely(calendar, calendarId, patient, phone, email, service, args.start_iso);
 
-    if (!chosenSlot) {
+    if (!booked) {
       const msg = 'All immediate slots were just taken. Please ask the caller to accept the next open weekday time.';
       return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
     }
-
-    const insertRes = await calendar.events.insert({
-      calendarId,
-      requestBody: {
-        summary: `Consultation: ${patient} (${service})`,
-        description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nReason: ${service}\nSlot: ${chosenSlot.label}\n\nBooked via Glow AI Receptionist (+1 804-259-1091).`,
-        start: { dateTime: chosenSlot.startIso, timeZone: 'America/New_York' },
-        end: { dateTime: chosenSlot.endIso, timeZone: 'America/New_York' },
-      },
-    });
 
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'Glow AI Appointments <appointments@glowaiautomation.com>',
         to: ['someshbadli@gmail.com', email],
-        subject: `Appointment Confirmed: ${patient} — ${chosenSlot.label}`,
-        text: `Hello ${patient},\n\nYour consultation is confirmed.\nDate & Time: ${chosenSlot.label}\nReason: ${service}\nCallback Phone: ${phone}\n\nFor any changes, email support@glowaiautomation.com or call +1 (804) 259-1091.\n\nThank you.`,
+        subject: `Appointment Confirmed: ${patient} — ${booked.slot.label}`,
+        text: `Hello ${patient},\n\nYour consultation is confirmed.\nDate & Time: ${booked.slot.label}\nReason: ${service}\nCallback Phone: ${phone}\n\nFor any changes, email support@glowaiautomation.com or call +1 (804) 259-1091.\n\nThank you.`,
       }).catch((e) => console.error('[RESEND_ERR]:', e.message));
     }
 
-    const confirmation = `Confirmed and locked ${chosenSlot.label} for ${patient}. Confirmation email sent to ${email}.`;
+    const confirmation = `Confirmed and locked ${booked.slot.label} for ${patient}. Confirmation email sent to ${email}.`;
     if (toolCallId) {
       return res.status(200).json({ results: [{ toolCallId, result: confirmation }] });
     }
     return res.status(200).json({
       result: confirmation,
       success: true,
-      calendar_event_id: insertRes.data.id,
-      booked_slot: chosenSlot.label,
+      calendar_event_id: booked.event.id,
+      booked_slot: booked.slot.label,
     });
   } catch (err) {
     console.error('[API_ERROR]:', err);
