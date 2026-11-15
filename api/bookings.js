@@ -37,7 +37,7 @@ function generateCandidateSlots() {
   const now = new Date();
   const offset = getETOffsetString(now);
 
-  for (let d = 0; d <= 7; d++) {
+  for (let d = 0; d <= 10; d++) {
     const probe = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/New_York',
@@ -54,6 +54,7 @@ function generateCandidateSlots() {
     const m = parts.find((p) => p.type === 'month')?.value;
     const day = parts.find((p) => p.type === 'day')?.value;
 
+    // Strictly 9:00 AM to 4:30 PM ET start times (last 30-min block ends at 5:00 PM ET)
     for (let hour = 9; hour < 17; hour++) {
       for (const min of [0, 30]) {
         const startIso = `${y}-${m}-${day}T${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00${offset}`;
@@ -66,17 +67,27 @@ function generateCandidateSlots() {
         const endIso = `${y}-${m}-${day}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00${offset}`;
 
         const displayHour = hour > 12 ? hour - 12 : hour;
+        const endDisplayHour = endHour > 12 ? endHour - 12 : endHour;
         const ampm = hour >= 12 ? 'PM' : 'AM';
-        const label = `${weekday}, ${m}/${day}/${y} at ${displayHour}:${String(min).padStart(2, '0')} ${ampm} ET`;
+        const endAmpm = endHour >= 12 ? 'PM' : 'AM';
+        const label = `${weekday}, ${m}/${day}/${y} from ${displayHour}:${String(min).padStart(2, '0')} ${ampm} to ${endDisplayHour}:${String(endMin).padStart(2, '0')} ${endAmpm} ET`;
 
-        slots.push({ startIso, endIso, startMs, endMs, label });
+        slots.push({
+          dateKey: `${y}-${m}-${day}`,
+          weekday,
+          startIso,
+          endIso,
+          startMs,
+          endMs,
+          label,
+        });
       }
     }
   }
   return slots;
 }
 
-async function getOpenSlots(calendar, calendarId, limit = 3) {
+async function getOpenSlots(calendar, calendarId, limit = 6) {
   const candidates = generateCandidateSlots();
   if (!candidates.length) return [];
 
@@ -97,6 +108,7 @@ async function getOpenSlots(calendar, calendarId, limit = 3) {
 
   const open = [];
   for (const slot of candidates) {
+    // Reject if ANY event overlaps any portion of this 30-min block
     const conflict = busy.some((b) => slot.startMs < b.endMs && slot.endMs > b.startMs);
     if (!conflict) {
       open.push(slot);
@@ -106,14 +118,39 @@ async function getOpenSlots(calendar, calendarId, limit = 3) {
   return open;
 }
 
+function isExactThirtyMinGrid(isoString) {
+  if (!isoString || typeof isoString !== 'string') return false;
+  const match = isoString.match(/T(\d{2}):(\d{2}):00/);
+  if (!match) return false;
+  const hour = parseInt(match[1], 10);
+  const min = parseInt(match[2], 10);
+  return hour >= 9 && hour < 17 && (min === 0 || min === 30);
+}
+
 async function bookSlotSafely(calendar, calendarId, patient, phone, email, service, preferredStartIso) {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const openSlots = await getOpenSlots(calendar, calendarId, 6);
-    const chosenSlot =
-      (attempt === 0 && preferredStartIso ? openSlots.find((s) => s.startIso === preferredStartIso) : null) ||
-      openSlots[0];
+    const openSlots = await getOpenSlots(calendar, calendarId, 20);
+    if (!openSlots.length) return { error: 'NO_SLOTS' };
 
-    if (!chosenSlot) return null;
+    let chosenSlot = null;
+    if (preferredStartIso) {
+      if (!isExactThirtyMinGrid(preferredStartIso)) {
+        return {
+          error: 'INVALID_GRID',
+          nextOptions: openSlots.slice(0, 3),
+        };
+      }
+      const exactMatch = openSlots.find((s) => s.startIso === preferredStartIso);
+      if (!exactMatch) {
+        return {
+          error: 'SLOT_UNAVAILABLE',
+          nextOptions: openSlots.slice(0, 3),
+        };
+      }
+      chosenSlot = exactMatch;
+    } else {
+      chosenSlot = openSlots[0];
+    }
 
     const insertRes = await calendar.events.insert({
       calendarId,
@@ -127,7 +164,7 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
 
     const createdEvent = insertRes.data;
 
-    // Verify no concurrent request won the exact same time window
+    // Verify no concurrent request won any part of this 30-min block
     const verifyRes = await calendar.events.list({
       calendarId,
       timeMin: chosenSlot.startIso,
@@ -143,10 +180,10 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
       return { event: createdEvent, slot: chosenSlot };
     }
 
-    // Lost the millisecond race: delete duplicate and retry next open slot
+    // Lost millisecond race: remove duplicate and try again
     await calendar.events.delete({ calendarId, eventId: createdEvent.id }).catch(() => {});
   }
-  return null;
+  return { error: 'RACE_CONFLICT' };
 }
 
 export default async function handler(req, res) {
@@ -173,10 +210,25 @@ export default async function handler(req, res) {
     const calendarId = (process.env.GOOGLE_CALENDAR_ID || 'primary').trim();
 
     if (fnName === 'check_availability' || req.query?.action === 'availability') {
-      const openSlots = await getOpenSlots(calendar, calendarId, 3);
-      const summary = openSlots.length
-        ? `Next available openings: 1) ${openSlots[0].label} (start_iso: ${openSlots[0].startIso}), 2) ${openSlots[1]?.label || 'none'} (start_iso: ${openSlots[1]?.startIso || ''}), 3) ${openSlots[2]?.label || 'none'} (start_iso: ${openSlots[2]?.startIso || ''}). Offer option 1 first.`
-        : 'No open weekday slots found in the next 7 days.';
+      const openSlots = await getOpenSlots(calendar, calendarId, 12);
+      if (!openSlots.length) {
+        const msg = 'No open weekday slots found in the next 10 days.';
+        return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
+      }
+
+      const firstDayKey = openSlots[0].dateKey;
+      const nextDaySlot = openSlots.find((s) => s.dateKey !== firstDayKey);
+
+      const summary = [
+        `STRICT 30-MINUTE SLOTS (:00 and :30 only):`,
+        `Option 1 (Earliest): ${openSlots[0].label} | start_iso: ${openSlots[0].startIso}`,
+        openSlots[1] ? `Option 2: ${openSlots[1].label} | start_iso: ${openSlots[1].startIso}` : '',
+        openSlots[2] ? `Option 3: ${openSlots[2].label} | start_iso: ${openSlots[2].startIso}` : '',
+        nextDaySlot ? `Next-Day Option: ${nextDaySlot.label} | start_iso: ${nextDaySlot.startIso}` : '',
+        `All open slots: ${openSlots.map((s) => `${s.label} (${s.startIso})`).join('; ')}`,
+      ]
+        .filter(Boolean)
+        .join('\n');
 
       if (toolCallId) {
         return res.status(200).json({ results: [{ toolCallId, result: summary }] });
@@ -186,18 +238,25 @@ export default async function handler(req, res) {
 
     const patient = args.patient_name || 'Valued Patient';
     const phone = args.patient_phone || 'Unlisted';
-    const rawEmail = args.patient_email || 'someshbadli@gmail.com';
-    const email = rawEmail.includes('@') ? rawEmail.trim() : 'someshbadli@gmail.com';
+    const rawEmail = args.patient_email || 'no-email@clinic-intake.local';
+    const email = rawEmail.includes('@') ? rawEmail.trim() : 'no-email@clinic-intake.local';
     const service = args.service_name || args.service_reason || 'Doctor Consultation';
 
     const booked = await bookSlotSafely(calendar, calendarId, patient, phone, email, service, args.start_iso);
 
-    if (!booked) {
-      const msg = 'All immediate slots were just taken. Please ask the caller to accept the next open weekday time.';
+    if (booked?.error) {
+      const nextOpts = booked.nextOptions || [];
+      const optText = nextOpts.length
+        ? `Offer these exact 30-minute slots instead: 1) ${nextOpts[0].label} (start_iso: ${nextOpts[0].startIso})${nextOpts[1] ? `, 2) ${nextOpts[1].label} (start_iso: ${nextOpts[1].startIso})` : ''}.`
+        : 'Please ask the caller to pick another open weekday 30-minute slot.';
+      const msg =
+        booked.error === 'INVALID_GRID'
+          ? `Rejected: Appointments can ONLY be booked on exact 30-minute blocks (:00 or :30, such as 9:00-9:30 or 9:30-10:00 ET). Never book off-grid times like 9:01 or 9:15. ${optText}`
+          : `That slot is no longer available. ${optText}`;
       return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
     }
 
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.RESEND_API_KEY && email !== 'no-email@clinic-intake.local') {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'Glow AI Appointments <appointments@glowaiautomation.com>',
@@ -207,7 +266,7 @@ export default async function handler(req, res) {
       }).catch((e) => console.error('[RESEND_ERR]:', e.message));
     }
 
-    const confirmation = `Confirmed and locked ${booked.slot.label} for ${patient}. Confirmation email sent to ${email}.`;
+    const confirmation = `Confirmed and locked ${booked.slot.label} for ${patient}.`;
     if (toolCallId) {
       return res.status(200).json({ results: [{ toolCallId, result: confirmation }] });
     }
