@@ -32,8 +32,28 @@ function getETOffsetString(date = new Date()) {
   }
 }
 
+function isUSFederalHoliday(yearStr, monthStr, dayStr) {
+  const y = parseInt(yearStr, 10);
+  const m = parseInt(monthStr, 10);
+  const d = parseInt(dayStr, 10);
+  const dateObj = new Date(Date.UTC(y, m - 1, d));
+  const dow = dateObj.getUTCDay(); // 0=Sun..6=Sat
+
+  // Fixed-date holidays (and observed Fri/Mon)
+  if ((m === 1 && d === 1) || (m === 12 && d === 31 && dow === 5) || (m === 1 && d === 2 && dow === 1)) return true; // New Year's
+  if ((m === 7 && d === 4) || (m === 7 && d === 3 && dow === 5) || (m === 7 && d === 5 && dow === 1)) return true; // Independence Day
+  if ((m === 12 && d === 25) || (m === 12 && d === 24 && dow === 5) || (m === 12 && d === 26 && dow === 1)) return true; // Christmas
+
+  // Floating Monday/Thursday holidays
+  if (m === 5 && dow === 1 && d >= 25) return true; // Memorial Day (last Mon in May)
+  if (m === 9 && dow === 1 && d <= 7) return true; // Labor Day (1st Mon in Sep)
+  if (m === 11 && dow === 4 && d >= 22 && d <= 28) return true; // Thanksgiving (4th Thu in Nov)
+
+  return false;
+}
+
 function normalizeAndValidatePhone(rawPhone) {
-  if (!rawPhone || typeof rawPhone !== 'string') return { valid: false, reason: 'MISSING' };
+  if (!rawPhone || typeof rawPhone !== 'string') return { valid: false, reason: 'MISSING', digitsCount: 0 };
   let digits = rawPhone.replace(/\D/g, '');
   if (digits.length === 11 && digits.startsWith('1')) {
     digits = digits.slice(1);
@@ -42,10 +62,22 @@ function normalizeAndValidatePhone(rawPhone) {
     return { valid: false, reason: 'LENGTH', digitsCount: digits.length };
   }
   if (/^(\d)\1{9}$/.test(digits) || digits === '1234567890' || digits === '0123456789') {
-    return { valid: false, reason: 'DUMMY' };
+    return { valid: false, reason: 'DUMMY', digitsCount: 10 };
   }
   const formatted = `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   return { valid: true, digits, formatted };
+}
+
+function normalizeEmail(rawEmail) {
+  if (!rawEmail || typeof rawEmail !== 'string') return 'no-email@clinic-intake.local';
+  const cleaned = rawEmail
+    .toLowerCase()
+    .replace(/\s+at\s+/g, '@')
+    .replace(/\s+dot\s+/g, '.')
+    .replace(/\s+underscore\s+/g, '_')
+    .replace(/\s+(dash|hyphen)\s+/g, '-')
+    .replace(/\s+/g, '');
+  return cleaned.includes('@') && cleaned.includes('.') ? cleaned : 'no-email@clinic-intake.local';
 }
 
 function generateCandidateSlots() {
@@ -53,7 +85,7 @@ function generateCandidateSlots() {
   const now = new Date();
   const offset = getETOffsetString(now);
 
-  for (let d = 0; d <= 10; d++) {
+  for (let d = 0; d <= 14; d++) {
     const probe = new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/New_York',
@@ -69,6 +101,8 @@ function generateCandidateSlots() {
     const y = parts.find((p) => p.type === 'year')?.value;
     const m = parts.find((p) => p.type === 'month')?.value;
     const day = parts.find((p) => p.type === 'day')?.value;
+
+    if (isUSFederalHoliday(y, m, day)) continue;
 
     // Strictly 9:00 AM to 4:30 PM ET start times (last 30-min block ends at 5:00 PM ET)
     for (let hour = 9; hour < 17; hour++) {
@@ -103,7 +137,7 @@ function generateCandidateSlots() {
   return slots;
 }
 
-async function getOpenSlotsAndCheckDuplicate(calendar, calendarId, phoneCheck, emailCheck, limit = 16) {
+async function getOpenSlotsAndCheckDuplicate(calendar, calendarId, patientName, phoneCheck, emailCheck, limit = 16) {
   const candidates = generateCandidateSlots();
   if (!candidates.length) return { open: [], existingBooking: null };
 
@@ -119,17 +153,22 @@ async function getOpenSlotsAndCheckDuplicate(calendar, calendarId, phoneCheck, e
     (ev) => ev.status !== 'cancelled' && ev.start?.dateTime && ev.end?.dateTime
   );
 
-  // Check if this exact phone or real email already has an upcoming consultation
+  // Household-friendly duplicate check: match same patient name + same phone/email
   let existingBooking = null;
-  if (phoneCheck?.valid || (emailCheck && emailCheck !== 'no-email@clinic-intake.local')) {
+  const normalizedTargetName = (patientName || '').trim().toLowerCase();
+  if (normalizedTargetName && (phoneCheck?.valid || (emailCheck && emailCheck !== 'no-email@clinic-intake.local'))) {
     for (const ev of activeEvents) {
       const desc = ev.description || '';
+      const descLower = desc.toLowerCase();
+      const samePatient = descLower.includes(`patient name: ${normalizedTargetName}`);
+      if (!samePatient) continue;
+
       const descDigits = desc.replace(/\D/g, '');
       const phoneMatch = phoneCheck?.valid && descDigits.includes(phoneCheck.digits);
       const emailMatch =
         emailCheck &&
         emailCheck !== 'no-email@clinic-intake.local' &&
-        desc.toLowerCase().includes(emailCheck.toLowerCase());
+        descLower.includes(emailCheck.toLowerCase());
       if (phoneMatch || emailMatch) {
         existingBooking = ev;
         break;
@@ -157,9 +196,12 @@ function isExactThirtyMinGrid(isoString) {
   if (!isoString || typeof isoString !== 'string') return false;
   const ms = Date.parse(isoString);
   if (Number.isNaN(ms)) return false;
-  const parts = new Intl.DateTimeFormat('en-US', {
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/New_York',
     hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     weekday: 'long',
     hour: '2-digit',
     minute: '2-digit',
@@ -167,6 +209,10 @@ function isExactThirtyMinGrid(isoString) {
   }).formatToParts(new Date(ms));
   const weekday = parts.find((p) => p.type === 'weekday')?.value;
   if (weekday === 'Saturday' || weekday === 'Sunday') return false;
+  const y = parts.find((p) => p.type === 'year')?.value;
+  const m = parts.find((p) => p.type === 'month')?.value;
+  const d = parts.find((p) => p.type === 'day')?.value;
+  if (isUSFederalHoliday(y, m, d)) return false;
   const hour = parseInt(parts.find((p) => p.type === 'hour')?.value || '-1', 10);
   const min = parseInt(parts.find((p) => p.type === 'minute')?.value || '-1', 10);
   const sec = parseInt(parts.find((p) => p.type === 'second')?.value || '-1', 10);
@@ -178,6 +224,7 @@ async function bookSlotSafely(calendar, calendarId, patient, phoneCheck, email, 
     const { open: openSlots, existingBooking } = await getOpenSlotsAndCheckDuplicate(
       calendar,
       calendarId,
+      patient,
       phoneCheck,
       email,
       24
@@ -276,7 +323,7 @@ function buildConfirmationHtml({ patient, phone, email, service, slotLabel }) {
         <p style="margin: 0; font-size: 13px;"><strong>Callback Number:</strong> ${phone}</p>
       </div>
       <div style="font-size: 13px; line-height: 1.6; color: #475569; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-        <p style="margin: 0 0 8px;"><strong>Clinic Hours &amp; Arrival:</strong> Please arrive 10 minutes early for check-in. Standard office hours are Monday–Friday, 9:00 AM – 5:00 PM ET.</p>
+        <p style="margin: 0 0 8px;"><strong>Clinic Hours &amp; Arrival:</strong> Please arrive 10 minutes early for check-in. Standard office hours are Monday–Friday, 9:00 AM – 5:00 PM ET (closed weekends &amp; federal holidays).</p>
         <p style="margin: 0;"><strong>Need to Reschedule?</strong> Please notify us at least 24 hours in advance by replying to this email or calling <strong>+1 (804) 259-1091</strong>.</p>
       </div>
     </div>
@@ -310,9 +357,9 @@ export default async function handler(req, res) {
     const calendarId = (process.env.GOOGLE_CALENDAR_ID || 'primary').trim();
 
     if (fnName === 'check_availability' || req.query?.action === 'availability') {
-      const { open: openSlots } = await getOpenSlotsAndCheckDuplicate(calendar, calendarId, null, null, 16);
+      const { open: openSlots } = await getOpenSlotsAndCheckDuplicate(calendar, calendarId, null, null, null, 16);
       if (!openSlots.length) {
-        const msg = 'No open weekday slots found in the next 10 days.';
+        const msg = 'No open weekday slots found in the next 14 days.';
         return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
       }
 
@@ -320,7 +367,7 @@ export default async function handler(req, res) {
       const nextDaySlot = openSlots.find((s) => s.dateKey !== firstDayKey);
 
       const summary = [
-        `STRICT 30-MINUTE SLOTS (:00 and :30 only):`,
+        `STRICT 30-MINUTE SLOTS (:00 and :30 only, excluding weekends & US holidays):`,
         `Option 1 (Earliest): ${openSlots[0].label} | start_iso: ${openSlots[0].startIso}`,
         openSlots[1] ? `Option 2: ${openSlots[1].label} | start_iso: ${openSlots[1].startIso}` : '',
         openSlots[2] ? `Option 3: ${openSlots[2].label} | start_iso: ${openSlots[2].startIso}` : '',
@@ -347,9 +394,7 @@ export default async function handler(req, res) {
       return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: phoneErrMsg }] } : { result: phoneErrMsg });
     }
 
-    const rawEmail = args.patient_email || 'no-email@clinic-intake.local';
-    const cleanedEmail = rawEmail.replace(/\s+/g, '').toLowerCase();
-    const email = cleanedEmail.includes('@') ? cleanedEmail : 'no-email@clinic-intake.local';
+    const email = normalizeEmail(args.patient_email);
     const service = (args.service_name || args.service_reason || 'Doctor Consultation').trim();
     const allowDuplicate = Boolean(args.allow_duplicate);
 
@@ -366,7 +411,7 @@ export default async function handler(req, res) {
 
     if (booked?.error) {
       if (booked.error === 'DUPLICATE_PATIENT') {
-        const dupMsg = `Duplicate Notice: This caller already has an active upcoming consultation on the calendar (${booked.existingSummary}). Inform the caller politely that they already have an active appointment scheduled and ask if they want to keep it rather than booking a second slot.`;
+        const dupMsg = `Duplicate Notice: ${patient} already has an active upcoming consultation on the calendar (${booked.existingSummary}). Inform the caller politely that ${patient} already has an active appointment scheduled, and if they want to reschedule or cancel it, confirm that our front desk team will update it for them.`;
         return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: dupMsg }] } : { result: dupMsg });
       }
 
@@ -376,7 +421,7 @@ export default async function handler(req, res) {
         : 'Please ask the caller to pick another open weekday 30-minute slot.';
       const msg =
         booked.error === 'INVALID_GRID'
-          ? `Rejected: Appointments can ONLY be booked on exact 30-minute blocks (:00 or :30, such as 9:00-9:30 or 9:30-10:00 ET). Never book off-grid times like 9:01 or 9:15. ${optText}`
+          ? `Rejected: Appointments can ONLY be booked on exact 30-minute blocks (:00 or :30 on open weekdays, excluding weekends and US federal holidays). ${optText}`
           : `That slot is no longer available. ${optText}`;
       return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
     }
