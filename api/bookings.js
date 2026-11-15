@@ -87,7 +87,7 @@ function generateCandidateSlots() {
   return slots;
 }
 
-async function getOpenSlots(calendar, calendarId, limit = 12) {
+async function getOpenSlots(calendar, calendarId, limit = 16) {
   const candidates = generateCandidateSlots();
   if (!candidates.length) return [];
 
@@ -139,7 +139,7 @@ function isExactThirtyMinGrid(isoString) {
 
 async function bookSlotSafely(calendar, calendarId, patient, phone, email, service, preferredStartIso) {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const openSlots = await getOpenSlots(calendar, calendarId, 20);
+    const openSlots = await getOpenSlots(calendar, calendarId, 24);
     if (!openSlots.length) return { error: 'NO_SLOTS' };
 
     let chosenSlot = null;
@@ -150,7 +150,8 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
           nextOptions: openSlots.slice(0, 3),
         };
       }
-      const prefMs = Date.parse(preferredStartIso); const exactMatch = openSlots.find((s) => s.startMs === prefMs);
+      const prefMs = Date.parse(preferredStartIso);
+      const exactMatch = openSlots.find((s) => s.startMs === prefMs);
       if (!exactMatch) {
         return {
           error: 'SLOT_UNAVAILABLE',
@@ -165,8 +166,17 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
     const insertRes = await calendar.events.insert({
       calendarId,
       requestBody: {
-        summary: `Consultation: ${patient} (${service})`,
-        description: `Patient: ${patient}\nPhone: ${phone}\nEmail: ${email}\nReason: ${service}\nSlot: ${chosenSlot.label}\n\nBooked via Glow AI Receptionist (+1 804-259-1091).`,
+        summary: `Consultation: ${patient} — ${service}`,
+        description: [
+          `PATIENT INTAKE SUMMARY`,
+          `• Patient Name: ${patient}`,
+          `• Callback Phone: ${phone}`,
+          `• Email: ${email}`,
+          `• Visit Type / Service: ${service}`,
+          `• Confirmed Window: ${chosenSlot.label}`,
+          ``,
+          `Booked automatically via Glow AI After-Hours Receptionist (+1 804-259-1091).`,
+        ].join('\n'),
         start: { dateTime: chosenSlot.startIso, timeZone: 'America/New_York' },
         end: { dateTime: chosenSlot.endIso, timeZone: 'America/New_York' },
       },
@@ -194,6 +204,35 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
   return { error: 'RACE_CONFLICT' };
 }
 
+function buildConfirmationHtml({ patient, phone, email, service, slotLabel }) {
+  return `
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 560px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; color: #1e293b;">
+    <div style="background: #0f172a; padding: 24px 28px; color: #ffffff;">
+      <p style="margin: 0; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #2dd4bf;">Radiance Aesthetic Institute</p>
+      <h2 style="margin: 6px 0 0; font-size: 20px; font-weight: 600;">Consultation Appointment Confirmed</h2>
+    </div>
+    <div style="padding: 24px 28px;">
+      <p style="margin: 0 0 16px; font-size: 15px;">Hello <strong>${patient}</strong>,</p>
+      <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: #475569;">
+        Thank you for calling Radiance Aesthetic Institute. Your 30-minute in-person consultation has been reserved on our clinical schedule.
+      </p>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;">
+        <p style="margin: 0 0 8px; font-size: 13px;"><strong>Date &amp; Time:</strong> ${slotLabel}</p>
+        <p style="margin: 0 0 8px; font-size: 13px;"><strong>Visit Type:</strong> ${service}</p>
+        <p style="margin: 0 0 8px; font-size: 13px;"><strong>Patient Name:</strong> ${patient}</p>
+        <p style="margin: 0; font-size: 13px;"><strong>Callback Number:</strong> ${phone}</p>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #475569; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+        <p style="margin: 0 0 8px;"><strong>Clinic Hours &amp; Arrival:</strong> Please arrive 10 minutes early for check-in. Standard office hours are Monday–Friday, 9:00 AM – 5:00 PM ET.</p>
+        <p style="margin: 0;"><strong>Need to Reschedule?</strong> Please notify us at least 24 hours in advance by replying to this email or calling <strong>+1 (804) 259-1091</strong>.</p>
+      </div>
+    </div>
+    <div style="background: #f1f5f9; padding: 14px 28px; font-size: 11px; color: #64748b; text-align: center;">
+      Administrative Scheduling Confirmation • Glow AI Clinic Receptionist
+    </div>
+  </div>`;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -218,7 +257,7 @@ export default async function handler(req, res) {
     const calendarId = (process.env.GOOGLE_CALENDAR_ID || 'primary').trim();
 
     if (fnName === 'check_availability' || req.query?.action === 'availability') {
-      const openSlots = await getOpenSlots(calendar, calendarId, 12);
+      const openSlots = await getOpenSlots(calendar, calendarId, 16);
       if (!openSlots.length) {
         const msg = 'No open weekday slots found in the next 10 days.';
         return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
@@ -244,11 +283,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ result: summary, open_slots: openSlots });
     }
 
-    const patient = args.patient_name || 'Valued Patient';
-    const phone = args.patient_phone || 'Unlisted';
+    const patient = (args.patient_name || 'Valued Patient').trim();
+    const phone = (args.patient_phone || 'Unlisted').trim();
     const rawEmail = args.patient_email || 'no-email@clinic-intake.local';
-    const cleanedEmail = rawEmail.replace(/\s+/g, '').toLowerCase(); const email = cleanedEmail.includes('@') ? cleanedEmail : 'no-email@clinic-intake.local';
-    const service = args.service_name || args.service_reason || 'Doctor Consultation';
+    const cleanedEmail = rawEmail.replace(/\s+/g, '').toLowerCase();
+    const email = cleanedEmail.includes('@') ? cleanedEmail : 'no-email@clinic-intake.local';
+    const service = (args.service_name || args.service_reason || 'Doctor Consultation').trim();
 
     const booked = await bookSlotSafely(calendar, calendarId, patient, phone, email, service, args.start_iso);
 
@@ -264,13 +304,24 @@ export default async function handler(req, res) {
       return res.status(200).json(toolCallId ? { results: [{ toolCallId, result: msg }] } : { result: msg });
     }
 
-    if (process.env.RESEND_API_KEY && email !== 'no-email@clinic-intake.local') {
+    if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
+      const recipients = email !== 'no-email@clinic-intake.local'
+        ? ['someshbadli@gmail.com', email]
+        : ['someshbadli@gmail.com'];
+
       await resend.emails.send({
         from: 'Glow AI Appointments <appointments@glowaiautomation.com>',
-        to: ['someshbadli@gmail.com', email],
+        to: recipients,
         subject: `Appointment Confirmed: ${patient} — ${booked.slot.label}`,
-        text: `Hello ${patient},\n\nYour consultation is confirmed.\nDate & Time: ${booked.slot.label}\nReason: ${service}\nCallback Phone: ${phone}\n\nFor any changes, email support@glowaiautomation.com or call +1 (804) 259-1091.\n\nThank you.`,
+        html: buildConfirmationHtml({
+          patient,
+          phone,
+          email,
+          service,
+          slotLabel: booked.slot.label,
+        }),
+        text: `Hello ${patient},\n\nYour 30-minute consultation is confirmed.\nDate & Time: ${booked.slot.label}\nVisit Type: ${service}\nCallback Phone: ${phone}\n\nPlease arrive 10 minutes early. To reschedule, give 24 hours notice by replying to this email or calling +1 (804) 259-1091.\n\nThank you.`,
       }).catch((e) => console.error('[RESEND_ERR]:', e.message));
     }
 
