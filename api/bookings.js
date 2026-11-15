@@ -192,7 +192,20 @@ async function getOpenSlotsAndCheckDuplicate(calendar, calendarId, patientName, 
   return { open, existingBooking };
 }
 
-function isExactThirtyMinGrid(isoString) {
+function normalizeETIso(isoString) {
+  if (!isoString || typeof isoString !== 'string') return null;
+  let clean = isoString.trim();
+  // Strip trailing Z if the LLM appended UTC Z to an ET wall-clock time
+  if (clean.endsWith('Z')) clean = clean.slice(0, -1);
+  // If no +/- offset is present, attach current America/New_York offset
+  if (!/[+-]\d{2}:\d{2}$/.test(clean)) {
+    clean = `${clean}${getETOffsetString(new Date())}`;
+  }
+  return clean;
+}
+
+function isExactThirtyMinGrid(rawIso) {
+  const isoString = normalizeETIso(rawIso);
   if (!isoString || typeof isoString !== 'string') return false;
   const ms = Date.parse(isoString);
   if (Number.isNaN(ms)) return false;
@@ -250,7 +263,8 @@ async function bookSlotSafely(calendar, calendarId, patient, phoneCheck, email, 
           nextOptions: openSlots.slice(0, 3),
         };
       }
-      const prefMs = Date.parse(preferredStartIso);
+      const normalizedPref = normalizeETIso(preferredStartIso);
+      const prefMs = Date.parse(normalizedPref);
       const exactMatch = openSlots.find((s) => s.startMs === prefMs);
       if (!exactMatch) {
         return {
