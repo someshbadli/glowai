@@ -119,11 +119,22 @@ async function getOpenSlots(calendar, calendarId, limit = 12) {
 
 function isExactThirtyMinGrid(isoString) {
   if (!isoString || typeof isoString !== 'string') return false;
-  const match = isoString.match(/T(\d{2}):(\d{2}):00/);
-  if (!match) return false;
-  const hour = parseInt(match[1], 10);
-  const min = parseInt(match[2], 10);
-  return hour >= 9 && hour < 17 && (min === 0 || min === 30);
+  const ms = Date.parse(isoString);
+  if (Number.isNaN(ms)) return false;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false,
+    weekday: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(ms));
+  const weekday = parts.find((p) => p.type === 'weekday')?.value;
+  if (weekday === 'Saturday' || weekday === 'Sunday') return false;
+  const hour = parseInt(parts.find((p) => p.type === 'hour')?.value || '-1', 10);
+  const min = parseInt(parts.find((p) => p.type === 'minute')?.value || '-1', 10);
+  const sec = parseInt(parts.find((p) => p.type === 'second')?.value || '-1', 10);
+  return hour >= 9 && hour < 17 && (min === 0 || min === 30) && sec === 0;
 }
 
 async function bookSlotSafely(calendar, calendarId, patient, phone, email, service, preferredStartIso) {
@@ -139,7 +150,7 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
           nextOptions: openSlots.slice(0, 3),
         };
       }
-      const exactMatch = openSlots.find((s) => s.startIso === preferredStartIso);
+      const prefMs = Date.parse(preferredStartIso); const exactMatch = openSlots.find((s) => s.startMs === prefMs);
       if (!exactMatch) {
         return {
           error: 'SLOT_UNAVAILABLE',
