@@ -87,7 +87,7 @@ function generateCandidateSlots() {
   return slots;
 }
 
-async function getOpenSlots(calendar, calendarId, limit = 6) {
+async function getOpenSlots(calendar, calendarId, limit = 12) {
   const candidates = generateCandidateSlots();
   if (!candidates.length) return [];
 
@@ -108,7 +108,6 @@ async function getOpenSlots(calendar, calendarId, limit = 6) {
 
   const open = [];
   for (const slot of candidates) {
-    // Reject if ANY event overlaps any portion of this 30-min block
     const conflict = busy.some((b) => slot.startMs < b.endMs && slot.endMs > b.startMs);
     if (!conflict) {
       open.push(slot);
@@ -164,7 +163,6 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
 
     const createdEvent = insertRes.data;
 
-    // Verify no concurrent request won any part of this 30-min block
     const verifyRes = await calendar.events.list({
       calendarId,
       timeMin: chosenSlot.startIso,
@@ -180,7 +178,6 @@ async function bookSlotSafely(calendar, calendarId, patient, phone, email, servi
       return { event: createdEvent, slot: chosenSlot };
     }
 
-    // Lost millisecond race: remove duplicate and try again
     await calendar.events.delete({ calendarId, eventId: createdEvent.id }).catch(() => {});
   }
   return { error: 'RACE_CONFLICT' };
