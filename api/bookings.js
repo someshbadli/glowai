@@ -247,7 +247,7 @@ export default async function handler(req, res) {
     const patient = args.patient_name || 'Valued Patient';
     const phone = args.patient_phone || 'Unlisted';
     const rawEmail = args.patient_email || 'no-email@clinic-intake.local';
-    const email = rawEmail.includes('@') ? rawEmail.trim() : 'no-email@clinic-intake.local';
+    const cleanedEmail = rawEmail.replace(/\s+/g, '').toLowerCase(); const email = cleanedEmail.includes('@') ? cleanedEmail : 'no-email@clinic-intake.local';
     const service = args.service_name || args.service_reason || 'Doctor Consultation';
 
     const booked = await bookSlotSafely(calendar, calendarId, patient, phone, email, service, args.start_iso);
