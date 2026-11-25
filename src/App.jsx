@@ -1124,53 +1124,68 @@ export default function App() {
       </main>
 
       {/* Clean Light Multi-Column Enterprise Footer */}
-      <footer className="relative z-10 bg-white/85 backdrop-blur text-slate-600 border-t border-slate-200/80 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
-          <div className="space-y-3">
+      <footer className="relative z-10 bg-white/95 backdrop-blur text-slate-800 border-t border-slate-200 mt-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-sm">
+          <div className="space-y-3.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-sm">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="font-extrabold text-base text-slate-900 tracking-tight">GLOW AI</span>
+              <span className="font-extrabold text-lg text-slate-900 tracking-tight">GLOW AI</span>
             </div>
-            <p className="text-slate-500 leading-relaxed">
+            <p className="text-sm font-medium text-slate-700 leading-relaxed">
               Autonomous 24/7 voice reception and patient scheduling infrastructure built for US outpatient clinics, dental practices, and medical spas.
             </p>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Live Demos</div>
-            <ul className="space-y-2">
+          <div className="space-y-3">
+            <div className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Live Demos</div>
+            <ul className="space-y-2.5 font-semibold text-slate-700">
               <li><button onClick={() => switchTab('call', 'call-demo')} className="hover:text-teal-700 transition">Call Assistant (Voice Demo)</button></li>
               <li><button onClick={() => switchTab('chat', 'chat-demo')} className="hover:text-teal-700 transition">Chat Assistant (Web Demo)</button></li>
               <li><button onClick={() => switchTab('onboard', 'onboard')} className="hover:text-teal-700 transition">14-Day Free Clinical Pilot</button></li>
             </ul>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Company & Partners</div>
-            <ul className="space-y-2">
+          <div className="space-y-3">
+            <div className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Company & Partners</div>
+            <ul className="space-y-2.5 font-semibold text-slate-700">
               <li><button onClick={() => switchTab('home', '')} className="hover:text-teal-700 transition">Platform Overview</button></li>
               <li><button onClick={() => switchTab('partners', 'partners')} className="hover:text-teal-700 transition">Clinical Partner Program</button></li>
               <li><a href="mailto:somesh@glowaiautomation.com" className="hover:text-teal-700 transition">Contact Engineering Desk</a></li>
             </ul>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Direct Contact</div>
-            <ul className="space-y-2 font-mono text-[11px]">
-              <li className="text-teal-700 font-bold">Demo: +1 (804) 259-1091</li>
-              <li>Desk: somesh@glowaiautomation.com</li>
-              <li>Outreach: mrvr@glowaiautomation.com</li>
-              <li className="text-slate-400">Serving Clinics Across USA & Canada</li>
+          <div className="space-y-3">
+            <div className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Direct Contact</div>
+            <ul className="space-y-2.5 text-sm font-semibold text-slate-800">
+              <li>
+                <a href="tel:+18042591091" className="text-teal-700 font-extrabold hover:underline">
+                  Demo: +1 (804) 259-1091
+                </a>
+              </li>
+              <li>
+                <a href="mailto:somesh@glowaiautomation.com" className="hover:text-teal-700 transition break-all">
+                  Desk: somesh@glowaiautomation.com
+                </a>
+              </li>
+              <li>
+                <a href="mailto:mrvr@glowaiautomation.com" className="hover:text-teal-700 transition break-all">
+                  Outreach: mrvr@glowaiautomation.com
+                </a>
+              </li>
+              <li className="text-slate-600 font-medium pt-0.5">
+                Serving Clinics Across USA &amp; Canada
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-slate-200/80 py-5 px-4 text-center text-sm font-bold text-slate-600">
+        <div className="border-t border-slate-200 py-5 px-4 text-center text-xs font-semibold text-slate-600">
           © 2026 Glow AI Automation. All rights reserved. Non-Diagnostic Administrative Scheduling Infrastructure.
         </div>
       </footer>
     </div>
   );
 }
+
