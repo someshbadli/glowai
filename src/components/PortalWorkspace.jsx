@@ -1,0 +1,672 @@
+﻿import React, { useState } from 'react';
+import {
+  ShieldCheck,
+  CreditCard,
+  Settings,
+  LifeBuoy,
+  Users,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Check,
+  ArrowUpRight,
+  LogOut,
+  Building2,
+  PhoneCall,
+  CalendarCheck2,
+  Send,
+  Loader2,
+  Sparkles,
+  FileText
+} from 'lucide-react';
+
+export default function PortalWorkspace() {
+  const [session, setSession] = useState(null); // { role: 'client' | 'partner', email: string, name: string, code?: string }
+  const [loginEmail, setLoginEmail] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Client Modification & Support Form States
+  const [modType, setModType] = useState('Update Operating Hours / Holiday Closure');
+  const [modNotes, setModNotes] = useState('');
+  const [modSending, setModSending] = useState(false);
+  const [modSent, setModSent] = useState(false);
+
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSending, setSupportSending] = useState(false);
+  const [supportSent, setSupportSent] = useState(false);
+
+  const wisePaymentUrl =
+    import.meta.env.VITE_WISE_PAYMENT_LINK ||
+    'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20%24500%20Monthly%20Subscription%20Invoice%20Request';
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    if (
+      cleanEmail.includes('mrvr@') ||
+      cleanEmail.includes('vijay') ||
+      cleanEmail.includes('vikas') ||
+      cleanEmail.includes('subbu') ||
+      cleanEmail.includes('partner') ||
+      cleanEmail.endsWith('@glowaiautomation.com')
+    ) {
+      const isVikas = cleanEmail.includes('vikas');
+      setSession({
+        role: 'partner',
+        email: cleanEmail,
+        name: isVikas ? 'Vikas (Channel Partner)' : 'Dr. Vijay (Clinical Advisor)',
+        code: isVikas ? 'VIKAS' : 'VIJAY'
+      });
+    } else {
+      setSession({
+        role: 'client',
+        email: cleanEmail,
+        name: 'Richmond Aesthetic & Outpatient Center'
+      });
+    }
+  };
+
+  const quickDemoLogin = (role) => {
+    if (role === 'partner') {
+      setSession({
+        role: 'partner',
+        email: 'mrvr@glowaiautomation.com',
+        name: 'Dr. Vijay (Clinical Partner)',
+        code: 'VIJAY'
+      });
+    } else {
+      setSession({
+        role: 'client',
+        email: 'frontdesk@richmondclinic.com',
+        name: 'Richmond Aesthetic & Outpatient Center'
+      });
+    }
+  };
+
+  const handleCopyReferral = () => {
+    const link = `https://glowaiautomation.com/#onboard?ref=${session?.code || 'PARTNER'}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const submitWeb3Ticket = async (subject, payload, setSending, setSent, resetFn) => {
+    setSending(true);
+    const web3Key = import.meta.env.VITE_WEB3FORMS_KEY || 'd24cb467-d97f-4fca-9689-aab1f1ac5344';
+    try {
+      await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: web3Key,
+          subject,
+          from_name: 'Glow AI Client & Partner Portal',
+          ...payload
+        })
+      });
+    } finally {
+      setSending(false);
+      setSent(true);
+      if (resetFn) resetFn();
+      setTimeout(() => setSent(false), 5000);
+    }
+  };
+
+  // =========================================================================
+  // VIEW 1: PORTAL SIGN-IN SCREEN
+  // =========================================================================
+  if (!session) {
+    return (
+      <div id="portal" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-10">
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-widest text-teal-700 bg-white border border-teal-200 px-3.5 py-1 rounded-full shadow-2xs">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-600" /> Unified Client &amp; Partner Workspace
+          </span>
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+            Glow AI Client &amp; Partner Portal
+          </h1>
+          <p className="text-base font-medium text-slate-700 leading-relaxed">
+            Clinics can manage subscriptions, request schedule modifications, and reach priority support. Clinical partners can track referred practices, client billing, and earned commissions.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          {/* Login Form Card */}
+          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-8 shadow-xl shadow-teal-900/5 space-y-6">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900">Sign In to Your Workspace</h2>
+              <p className="text-sm font-medium text-slate-600 mt-1">
+                Enter your registered clinic or <span className="font-mono text-teal-700">@glowaiautomation.com</span> partner email.
+              </p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">Work or Partner Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="e.g., frontdesk@yourclinic.com or mrvr@glowaiautomation.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-teal-600/20"
+              >
+                Access Workspace →
+              </button>
+            </form>
+
+            <div className="pt-4 border-t border-slate-100 space-y-2.5">
+              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                Instant Live Role Previews:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => quickDemoLogin('client')}
+                  className="bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-slate-800 font-bold text-xs py-3 px-4 rounded-xl transition text-left flex items-center justify-between"
+                >
+                  <span>Preview Clinic Client Portal</span>
+                  <ArrowUpRight className="w-4 h-4 text-teal-600" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => quickDemoLogin('partner')}
+                  className="bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-slate-800 font-bold text-xs py-3 px-4 rounded-xl transition text-left flex items-center justify-between"
+                >
+                  <span>Preview Partner / Agent Portal</span>
+                  <ArrowUpRight className="w-4 h-4 text-teal-600" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Side Overview Card */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-teal-50/90 via-white to-sky-50/80 border border-teal-200 rounded-3xl p-8 flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-md">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900">Everything in One Place</h3>
+              <ul className="space-y-3 text-sm font-medium text-slate-700">
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-1" />
+                  <span><strong>Clinics:</strong> Pay your $500/mo retainer via US ACH/Card, view live forwarding configuration, and submit schedule updates.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-1" />
+                  <span><strong>Partners &amp; Agents:</strong> Track referred clinics from 14-day pilot to active billing, view payment history, and monitor earned commissions.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white/90 border border-teal-200/80 rounded-2xl p-4 text-xs font-semibold text-slate-700">
+              Need portal credentials activated for your practice? Email{' '}
+              <a href="mailto:somesh@glowaiautomation.com" className="text-teal-700 font-extrabold underline">
+                somesh@glowaiautomation.com
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: CLINIC CLIENT PORTAL
+  // =========================================================================
+  if (session.role === 'client') {
+    return (
+      <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        {/* Top Workspace Header */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-teal-700 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full">
+              Clinic Client Workspace • {session.email}
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{session.name}</h1>
+          </div>
+          <button
+            onClick={() => setSession(null)}
+            className="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl transition self-start sm:self-auto"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign Out
+          </button>
+        </div>
+
+        {/* Row 1: Subscription & Billing + Active AI Service Configuration */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Subscription & Payment Card */}
+          <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900">Subscription &amp; Billing</h2>
+                  <p className="text-xs font-semibold text-slate-500">Flat Monthly Retainer • Zero Lock-In</p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                14-Day Pilot Active
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <div>
+                <div className="text-xs font-semibold text-slate-500">Monthly Plan Rate</div>
+                <div className="text-2xl font-extrabold text-slate-900 font-mono mt-0.5">$500.00<span className="text-xs font-sans font-semibold text-slate-500">/mo</span></div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">Pilot Guarantee Status</div>
+                <div className="text-sm font-extrabold text-teal-700 mt-1.5">$0 Due During 14-Day Trial</div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              <a
+                href={wisePaymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3.5 px-5 rounded-xl text-sm transition shadow-md shadow-teal-600/20 flex items-center justify-center gap-2"
+              >
+                Pay $500.00 Monthly Subscription (US ACH / Card) <ArrowUpRight className="w-4 h-4" />
+              </a>
+              <p className="text-xs font-medium text-slate-500 text-center">
+                Processed securely via Wise Business USD • Instant receipt &amp; invoice emailed to {session.email}
+              </p>
+            </div>
+
+            {/* Recent Invoices */}
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <div className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Billing History</div>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between text-xs font-semibold">
+                <div>
+                  <div className="text-slate-900 font-bold">INV-2026-001 • 14-Day Clinical Pilot Onboarding</div>
+                  <div className="text-slate-500 mt-0.5">Zero-Risk Trial Period</div>
+                </div>
+                <span className="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                  $0.00 PAID
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Service Details Card */}
+          <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900">Active AI Receptionist Configuration</h2>
+                  <p className="text-xs font-semibold text-slate-500">Live Voice &amp; Calendar Routing Profile</p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-full">
+                ONLINE 24/7
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                  <PhoneCall className="w-3.5 h-3.5 text-teal-600" /> Dedicated AI Forwarding Line
+                </div>
+                <div className="font-mono font-extrabold text-slate-900 mt-1">+1 (804) 259-1091</div>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-teal-600" /> Active Scheduling Window
+                </div>
+                <div className="font-bold text-slate-900 mt-1">Mon–Fri • 9:00 AM – 5:00 PM ET</div>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                  <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-600" /> Calendar Integration
+                </div>
+                <div className="font-bold text-slate-900 mt-1">Google Calendar + Email Alerts</div>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" /> Clinical Safety Guardrail
+                </div>
+                <div className="font-bold text-emerald-700 mt-1">Non-Diagnostic Deflection Active</div>
+              </div>
+            </div>
+
+            <div className="bg-teal-50/70 border border-teal-200/80 rounded-2xl p-4 text-xs font-semibold text-slate-700">
+              <strong>Booked Services Enabled:</strong> New Patient Consultations, Follow-Up Visits, Botox &amp; Aesthetic Consults.
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Service Modification Application + Priority Customer Support */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Modification Request Form */}
+          <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
+              <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">Service Modification Application</h2>
+                <p className="text-xs font-semibold text-slate-500">Request changes to hours, holiday closures, providers, or services</p>
+              </div>
+            </div>
+
+            {modSent ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-sm font-bold text-emerald-800 flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                Modification request received! Our engineering team will apply your update within 4 business hours.
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitWeb3Ticket(
+                    `Clinic Modification Request: ${session.name}`,
+                    {
+                      Client_Email: session.email,
+                      Clinic: session.name,
+                      Modification_Category: modType,
+                      Requested_Changes: modNotes
+                    },
+                    setModSending,
+                    setModSent,
+                    () => setModNotes('')
+                  );
+                }}
+                className="space-y-3.5"
+              >
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 mb-1">Modification Category</label>
+                  <select
+                    value={modType}
+                    onChange={(e) => setModType(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-teal-600"
+                  >
+                    <option>Update Operating Hours / Holiday Closure</option>
+                    <option>Add or Remove Consultation Services</option>
+                    <option>Change Call Forwarding Mode (24/7 vs After-Hours)</option>
+                    <option>Update Calendar Sync or Notification Email</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 mb-1">Modification Details *</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={modNotes}
+                    onChange={(e) => setModNotes(e.target.value)}
+                    placeholder="Describe the exact schedule or script change you need..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-teal-600"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={modSending}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold px-5 py-3 rounded-xl text-sm transition flex items-center gap-2"
+                >
+                  {modSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Submit Modification Request
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Priority Customer Support */}
+          <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700">
+                <LifeBuoy className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">Priority Customer Support Desk</h2>
+                <p className="text-xs font-semibold text-slate-500">Direct engineering &amp; front-desk assistance</p>
+              </div>
+            </div>
+
+            {supportSent ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-sm font-bold text-emerald-800 flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                Support ticket logged! A Glow AI engineer will reply to {session.email} shortly.
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitWeb3Ticket(
+                    `Priority Support Ticket: ${supportSubject}`,
+                    {
+                      Client_Email: session.email,
+                      Clinic: session.name,
+                      Subject: supportSubject,
+                      Message: supportMessage
+                    },
+                    setSupportSending,
+                    setSupportSent,
+                    () => {
+                      setSupportSubject('');
+                      setSupportMessage('');
+                    }
+                  );
+                }}
+                className="space-y-3.5"
+              >
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 mb-1">Issue / Question Subject *</label>
+                  <input
+                    required
+                    value={supportSubject}
+                    onChange={(e) => setSupportSubject(e.target.value)}
+                    placeholder="e.g., Carrier call-forwarding verification or calendar alert"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-teal-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-800 mb-1">How Can We Help? *</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={supportMessage}
+                    onChange={(e) => setSupportMessage(e.target.value)}
+                    placeholder="Share details and our engineering team will assist right away..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-teal-600"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={supportSending}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-5 py-3 rounded-xl text-sm transition flex items-center gap-2"
+                >
+                  {supportSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LifeBuoy className="w-4 h-4" />}
+                  Open Support Ticket
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 3: PARTNER & AGENT PORTAL (CLIENTS LIST, PAYMENTS, COMMISSIONS)
+  // =========================================================================
+  const partnerClients = [
+    {
+      clinic: 'Richmond Aesthetic & Laser Center',
+      contact: 'Dr. Sarah Jenkins',
+      stage: '14-Day Pilot Active',
+      monthlyBill: '$500/mo (Starts Day 15)',
+      commissionModel: 'Option A: $500 Day-1 Bounty',
+      earned: '$0.00 (Pending Conversion)',
+      statusColor: 'text-amber-700 bg-amber-50 border-amber-200'
+    },
+    {
+      clinic: 'West End Dental & Implant Studio',
+      contact: 'Emily Carter (Office Mgr)',
+      stage: 'Outreach / Demo Scheduled',
+      monthlyBill: '$500/mo',
+      commissionModel: 'Option B: $100/mo (Months 1–6)',
+      earned: '$0.00 (In Pipeline)',
+      statusColor: 'text-sky-700 bg-sky-50 border-sky-200'
+    }
+  ];
+
+  return (
+    <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Top Partner Header */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-teal-700 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full">
+            Partner &amp; Agent Workspace • Code: {session.code}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{session.name}</h1>
+          <p className="text-sm font-medium text-slate-600">{session.email}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleCopyReferral}
+            className="inline-flex items-center gap-2 text-xs font-extrabold bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-4 py-2.5 rounded-xl transition"
+          >
+            {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-teal-600" />}
+            {copiedLink ? 'Copied Referral Onboarding Link!' : `Copy Clinic Onboarding Link (?ref=${session.code})`}
+          </button>
+          <button
+            onClick={() => setSession(null)}
+            className="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl transition"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* Partner KPI Summary Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-teal-600" /> Referred Clinics
+          </div>
+          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">2</div>
+          <div className="text-xs font-semibold text-slate-500 mt-1">1 Active Pilot • 1 Demo Scheduled</div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <DollarSign className="w-4 h-4 text-emerald-600" /> Active Client MRR
+          </div>
+          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">$0.00</div>
+          <div className="text-xs font-semibold text-teal-700 mt-1">$1,000/mo Pending Pilot Conversions</div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-teal-600" /> Total Commissions Earned
+          </div>
+          <div className="text-3xl font-extrabold text-emerald-600 font-mono mt-2">$0.00</div>
+          <div className="text-xs font-semibold text-slate-500 mt-1">Up to $500–$600 per converted clinic</div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <PhoneCall className="w-4 h-4 text-teal-600" /> Live Demo Line
+          </div>
+          <div className="text-lg font-extrabold text-teal-700 font-mono mt-2.5">+1 (804) 259-1091</div>
+          <div className="text-xs font-semibold text-slate-500 mt-1">Share directly with clinic directors</div>
+        </div>
+      </div>
+
+      {/* Referred Clients & Commission Ledger Table */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-900">Referred Clinics &amp; Commission Ledger</h2>
+            <p className="text-xs font-semibold text-slate-500">
+              Real-time status of clinics introduced under Partner Code <span className="font-mono text-teal-700">{session.code}</span>
+            </p>
+          </div>
+          <a
+            href="#onboard"
+            className="bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition inline-flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            + Submit New Clinic Lead
+          </a>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                <th className="py-3 pr-4">Clinic / Practice</th>
+                <th className="py-3 px-4">Pipeline Stage</th>
+                <th className="py-3 px-4">Retainer Plan</th>
+                <th className="py-3 px-4">Commission Structure</th>
+                <th className="py-3 pl-4 text-right">Earned Payout</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              {partnerClients.map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/70">
+                  <td className="py-4 pr-4">
+                    <div className="font-extrabold text-slate-900">{row.clinic}</div>
+                    <div className="text-xs text-slate-500">{row.contact}</div>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${row.statusColor}`}>
+                      {row.stage}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 font-mono text-xs font-bold">{row.monthlyBill}</td>
+                  <td className="py-4 px-4 text-xs font-semibold text-slate-700">{row.commissionModel}</td>
+                  <td className="py-4 pl-4 text-right font-mono text-xs font-extrabold text-slate-900">{row.earned}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Commission Rules & Payment History */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-6 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/70 border border-teal-200 rounded-3xl p-6 sm:p-8 space-y-3">
+          <div className="text-xs font-mono font-bold uppercase tracking-wider text-teal-700 flex items-center gap-1.5">
+            <FileText className="w-4 h-4" /> Partner Commission Structure
+          </div>
+          <h3 className="text-lg font-extrabold text-slate-900">Choose Per-Clinic Payout Option</h3>
+          <ul className="space-y-2.5 text-sm font-medium text-slate-700">
+            <li>
+              <strong className="text-slate-900">Option A — $500 Day-1 Cash Bounty:</strong> Paid immediately once your referred clinic completes their 14-day pilot and pays their first $500 monthly retainer.
+            </li>
+            <li>
+              <strong className="text-slate-900">Option B — $100/Month Recurring (Months 1–6):</strong> Earn $100/month across the clinic’s first 6 active billing months ($600 total payout per clinic).
+            </li>
+          </ul>
+        </div>
+
+        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-3 shadow-sm">
+          <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+            Partner Payout &amp; Disbursement History
+          </div>
+          <h3 className="text-lg font-extrabold text-slate-900">Recent Commission Transfers</h3>
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-sm font-medium text-slate-600">
+            No completed payouts yet. Commissions automatically unlock as soon as your first referred clinic clears their 14-day zero-risk pilot.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

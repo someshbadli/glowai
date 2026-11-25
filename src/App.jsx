@@ -29,6 +29,7 @@ import {
   Play
 } from 'lucide-react';
 import ClinicOnboardingForm from './components/ClinicOnboardingForm';
+import PortalWorkspace from './components/PortalWorkspace';
 
 export const SYSTEM_PROMPT = `You are the autonomous administrative receptionist for Glow AI Automation, serving private medical practices, outpatient clinics, and aesthetic centers.
 Your objective is strictly administrative: triage inquiries and schedule an in-person consultation by gathering verified patient intake details.
@@ -344,7 +345,8 @@ export default function App() {
               { id: 'call', hash: 'call-demo', label: 'Call Assistant', icon: PhoneCall },
               { id: 'chat', hash: 'chat-demo', label: 'Chat Assistant', icon: MessageSquare },
               { id: 'partners', hash: 'partners', label: 'Partners', icon: Handshake },
-              { id: 'onboard', hash: 'onboard', label: '14-Day Free Pilot' }
+              { id: 'onboard', hash: 'onboard', label: '14-Day Free Pilot' },
+              { id: 'portal', hash: 'portal', label: 'Client / Partner Login' }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -387,7 +389,8 @@ export default function App() {
             { id: 'call', hash: 'call-demo', label: 'Call Assistant' },
             { id: 'chat', hash: 'chat-demo', label: 'Chat Assistant' },
             { id: 'partners', hash: 'partners', label: 'Partners' },
-            { id: 'onboard', hash: 'onboard', label: '14-Day Pilot' }
+            { id: 'onboard', hash: 'onboard', label: '14-Day Pilot' },
+            { id: 'portal', hash: 'portal', label: 'Portal Login' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1121,6 +1124,10 @@ export default function App() {
             <ClinicOnboardingForm />
           </div>
         )}
+        {/* ================================================================= */}
+        {/* TAB 6: CLIENT & PARTNER PORTAL (#portal) */}
+        {/* ================================================================= */}
+        {activeTab === 'portal' && <PortalWorkspace />}
       </main>
 
       {/* Clean Light Multi-Column Enterprise Footer */}
@@ -1188,4 +1195,5 @@ export default function App() {
     </div>
   );
 }
+
 
