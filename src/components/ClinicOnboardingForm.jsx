@@ -92,7 +92,7 @@ export default function ClinicOnboardingForm() {
 
   if (submitted) {
     return (
-      <div id="onboard" className="bg-white border border-teal-200 rounded-2xl p-8 sm:p-10 text-center space-y-4 shadow-xl shadow-slate-200/60">
+      <div id="onboard" className="bg-white border border-teal-200 rounded-3xl p-8 sm:p-10 text-center space-y-4 shadow-xl shadow-teal-900/5">
         <div className="w-14 h-14 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center mx-auto text-teal-600">
           <CheckCircle2 className="w-7 h-7" />
         </div>
@@ -114,10 +114,10 @@ export default function ClinicOnboardingForm() {
   }
 
   return (
-    <div id="onboard" className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-xl shadow-slate-200/70 text-left">
+    <div id="onboard" className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-10 shadow-xl shadow-teal-900/5 text-left">
       <div className="border-b border-slate-100 pb-6 mb-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="inline-block text-[11px] font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+          <span className="inline-block text-[11px] font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-full">
             Turnkey 48-Hour Deployment
           </span>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
@@ -127,9 +127,9 @@ export default function ClinicOnboardingForm() {
             Zero software installed on clinic PCs. Complete your practice profile below to receive your dedicated AI forwarding line.
           </p>
         </div>
-        <div className="bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-left sm:text-right shrink-0">
-          <div className="text-[10px] text-slate-500 uppercase font-mono font-semibold">Live US Demo Line</div>
-          <a href="tel:+18042591091" className="text-sm font-bold text-teal-700 font-mono hover:underline">
+        <div className="bg-teal-50/70 border border-teal-200/80 px-4 py-2.5 rounded-2xl text-left sm:text-right shrink-0">
+          <div className="text-[10px] text-teal-700 uppercase font-mono font-semibold">Live US Demo Line</div>
+          <a href="tel:+18042591091" className="text-sm font-bold text-slate-900 font-mono hover:text-teal-700 transition">
             +1 (804) 259-1091
           </a>
         </div>
@@ -149,7 +149,7 @@ export default function ClinicOnboardingForm() {
                 value={formData.clinicName}
                 onChange={handleChange}
                 placeholder="e.g., Richmond Aesthetic & Laser Center"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               />
             </div>
             <div>
@@ -160,7 +160,7 @@ export default function ClinicOnboardingForm() {
                 value={formData.contactName}
                 onChange={handleChange}
                 placeholder="e.g., Dr. Sarah Jenkins / Emily Carter"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               />
             </div>
             <div>
@@ -172,7 +172,7 @@ export default function ClinicOnboardingForm() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="frontdesk@yourclinic.com"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               />
             </div>
             <div>
@@ -183,7 +183,7 @@ export default function ClinicOnboardingForm() {
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="(804) 555-0199"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               />
             </div>
           </div>
@@ -202,7 +202,7 @@ export default function ClinicOnboardingForm() {
                 value={formData.mainClinicNumber}
                 onChange={handleChange}
                 placeholder="(804) 555-0100"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               />
             </div>
             <div>
@@ -211,7 +211,7 @@ export default function ClinicOnboardingForm() {
                 name="phoneProvider"
                 value={formData.phoneProvider}
                 onChange={handleChange}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               >
                 <option>AT&T / Verizon / Landline</option>
                 <option>RingCentral</option>
@@ -226,7 +226,7 @@ export default function ClinicOnboardingForm() {
                 name="forwardingMode"
                 value={formData.forwardingMode}
                 onChange={handleChange}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               >
                 <option>After-Hours, Lunch & Weekends Only</option>
                 <option>24/7 Overflow (Unanswered after 3 rings)</option>
@@ -247,7 +247,7 @@ export default function ClinicOnboardingForm() {
                 name="timezone"
                 value={formData.timezone}
                 onChange={handleChange}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               >
                 <option>Eastern Time (ET)</option>
                 <option>Central Time (CT)</option>
@@ -261,7 +261,7 @@ export default function ClinicOnboardingForm() {
                 name="calendarPlatform"
                 value={formData.calendarPlatform}
                 onChange={handleChange}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               >
                 <option>Google Calendar</option>
                 <option>Microsoft Outlook / 365</option>
@@ -276,7 +276,7 @@ export default function ClinicOnboardingForm() {
                 value={formData.partnerCode}
                 onChange={handleChange}
                 placeholder="e.g., Dr. Vijay / Vikas / Direct"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
               />
             </div>
           </div>
@@ -288,12 +288,12 @@ export default function ClinicOnboardingForm() {
               value={formData.servicesList}
               onChange={handleChange}
               placeholder="e.g., Mon–Fri 9 AM–5 PM • Botox, Laser Consults, New Patient Exams"
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+              className="w-full bg-slate-50/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
             />
           </div>
         </div>
 
-        <label className="flex items-start gap-3 text-xs text-slate-700 bg-teal-50/60 p-4 rounded-xl border border-teal-200/80 cursor-pointer">
+        <label className="flex items-start gap-3 text-xs text-slate-700 bg-gradient-to-r from-teal-50/80 to-emerald-50/60 p-4 rounded-2xl border border-teal-200/80 cursor-pointer">
           <input
             type="checkbox"
             required
@@ -310,7 +310,7 @@ export default function ClinicOnboardingForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2"
         >
           {submitting ? (
             <>

@@ -2,7 +2,6 @@
 import {
   Sparkles,
   CheckCircle2,
-  Clock,
   Database,
   Send,
   ShieldCheck,
@@ -18,7 +17,16 @@ import {
   Handshake,
   PhoneForwarded,
   Layers,
-  Award
+  Award,
+  TrendingUp,
+  Headphones,
+  FileCheck2,
+  Globe,
+  Mic,
+  Volume2,
+  MessageSquare,
+  PhoneIncoming,
+  Play
 } from 'lucide-react';
 import ClinicOnboardingForm from './components/ClinicOnboardingForm';
 
@@ -41,7 +49,9 @@ RULES:
 4. STYLE: Polite, concise, and administrative. 1 to 2 sentences per reply.`;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('simulation');
+  const [activeTab, setActiveTab] = useState('home');
+  const [activeVoiceScenario, setActiveVoiceScenario] = useState(0);
+
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
@@ -69,20 +79,50 @@ export default function App() {
       email: 's.jenkins@example.com',
       service: 'In-Person Consultation',
       time: 'Monday • 10:00 AM',
-      status: 'Confirmed (Calendar Synced)'
+      status: 'Calendar Synced'
     }
   ]);
+
+  const voiceScenarios = [
+    {
+      title: 'After-Hours New Patient Booking (6:45 PM)',
+      caller: '“Hi, I’ve been trying to reach the front desk. Can I book a new patient consultation for Monday morning?”',
+      ai: '“Good evening! I can certainly reserve that for you during our Monday–Friday 9 AM to 5 PM clinic hours. We have Monday at 10:00 AM Eastern open—may I have your full legal name and best callback number?”',
+      outcome: 'Booked Monday 10:00 AM • Calendar Synced + Front-Desk Email Alert Sent'
+    },
+    {
+      title: 'Weekend Boundary Enforcement (Saturday Call)',
+      caller: '“Are you guys open this Saturday for a quick Botox touch-up?”',
+      ai: '“Our clinic is open strictly Monday through Friday from 9:00 AM to 5:00 PM Eastern, and we are closed on weekends. Would Monday morning or Tuesday afternoon work better for your visit?”',
+      outcome: 'Weekend Rejected Politely • Redirected to Monday 10:00 AM Slot'
+    },
+    {
+      title: 'Clinical Safety & Malpractice Deflection',
+      caller: '“I got a mild sunburn yesterday at the beach—is it still safe for me to do my laser session?”',
+      ai: '“That is an excellent question for the doctor to evaluate directly during your visit. Let’s reserve a quick consultation slot so our clinical team can review it in person before any treatment.”',
+      outcome: 'Zero Medical Advice Given • Safely Converted to In-Person Evaluation'
+    }
+  ];
+
+  const switchTab = (tabId, hash = '') => {
+    setActiveTab(tabId);
+    window.history.replaceState(null, '', hash ? `#${hash}` : `#${tabId}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const syncHash = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'onboard' || hash === 'offer') {
-        setActiveTab('offer');
-        setTimeout(() => {
-          document.getElementById('onboard')?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+      if (hash === 'onboard' || hash === 'pilot') {
+        setActiveTab('onboard');
       } else if (hash === 'partners') {
         setActiveTab('partners');
+      } else if (hash === 'call-demo' || hash === 'call') {
+        setActiveTab('call');
+      } else if (hash === 'chat-demo' || hash === 'chat') {
+        setActiveTab('chat');
+      } else {
+        setActiveTab('home');
       }
     };
     syncHash();
@@ -93,14 +133,6 @@ export default function App() {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const navigateToPilot = () => {
-    setActiveTab('offer');
-    window.history.replaceState(null, '', '#onboard');
-    setTimeout(() => {
-      document.getElementById('onboard')?.scrollIntoView({ behavior: 'smooth' });
-    }, 60);
-  };
 
   const dispatchBooking = async (bookingData) => {
     try {
@@ -252,7 +284,7 @@ export default function App() {
           email: result.bookingComplete.email,
           service: result.bookingComplete.service,
           time: result.bookingComplete.time,
-          status: 'Confirmed (Calendar Synced)'
+          status: 'Calendar Synced'
         };
         setSyncedBookings((prev) => [newEntry, ...prev]);
         dispatchBooking(result.bookingComplete);
@@ -264,170 +296,567 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-teal-500 selection:text-white">
-      <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-emerald-950 border-b border-teal-500/20 px-4 py-2 text-center text-xs tracking-wide text-teal-200 flex flex-wrap items-center justify-center gap-3">
-        <span>
-          <span className="font-semibold uppercase tracking-wider bg-teal-500/20 px-2 py-0.5 rounded text-teal-300 mr-2 border border-teal-500/30">
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-teal-600 selection:text-white flex flex-col">
+      {/* Light Mint Announcement Ribbon */}
+      <div className="bg-gradient-to-r from-teal-50 via-emerald-50/70 to-sky-50 border-b border-teal-100 px-4 py-2 text-center text-xs tracking-wide flex flex-wrap items-center justify-center gap-3">
+        <span className="text-slate-700 font-medium">
+          <span className="font-mono font-bold uppercase tracking-wider bg-white text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded-full mr-2 shadow-2xs">
             US Healthcare AI
           </span>
           Zero-Hold 24/7 Voice & Web Reception for Outpatient Clinics & MedSpas
         </span>
         <a
           href="tel:+18042591091"
-          className="inline-flex items-center gap-1.5 font-mono font-bold text-white bg-teal-600/30 hover:bg-teal-600/50 border border-teal-400/40 px-2.5 py-0.5 rounded-full transition"
+          className="inline-flex items-center gap-1.5 font-mono font-bold text-teal-800 hover:text-teal-950 bg-white border border-teal-200 px-3 py-0.5 rounded-full shadow-2xs transition"
         >
-          <PhoneCall className="w-3 h-3 text-teal-300" /> Test Live Demo: +1 (804) 259-1091
+          <PhoneCall className="w-3 h-3 text-teal-600" /> Live Demo: +1 (804) 259-1091
         </a>
       </div>
 
-      <nav className="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <button
-            onClick={() => setActiveTab('simulation')}
-            className="flex items-center gap-3 text-left"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
-              <Sparkles className="w-5 h-5 text-slate-950" />
+      {/* Crisp Light Navigation Header */}
+      <header className="border-b border-slate-200/80 bg-white/95 backdrop-blur sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+          <button onClick={() => switchTab('home', '')} className="flex items-center gap-3 text-left">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-md shadow-teal-600/20">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                GLOW AI
+              <div className="font-extrabold text-lg tracking-tight text-slate-900 leading-none">
+                GLOW <span className="text-teal-600">AI</span>
               </div>
-              <div className="text-[10px] text-teal-400 font-mono tracking-widest uppercase">
-                HEALTHCARE AUTOMATION
+              <div className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mt-1">
+                Healthcare Automation
               </div>
             </div>
           </button>
 
-          <div className="hidden lg:flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-1 rounded-lg text-xs">
+          {/* Clean Top Navigation Tabs */}
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 border border-slate-200/80 p-1 rounded-xl text-xs font-semibold">
             {[
-              { id: 'simulation', label: 'Platform & Live Demo' },
-              { id: 'sectors', label: 'Solutions by Specialty' },
-              { id: 'liability', label: 'Security & Guardrails' },
-              { id: 'partners', label: 'Clinical Partners' },
-              { id: 'offer', label: '14-Day Free Pilot' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+              { id: 'home', hash: '', label: 'Overview' },
+              { id: 'call', hash: 'call-demo', label: 'Call Assistant', icon: PhoneCall },
+              { id: 'chat', hash: 'chat-demo', label: 'Chat Assistant', icon: MessageSquare },
+              { id: 'partners', hash: 'partners', label: 'Partners', icon: Handshake },
+              { id: 'onboard', hash: 'onboard', label: '14-Day Free Pilot' }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => switchTab(tab.id, tab.hash)}
+                  className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+                    activeTab === tab.id
+                      ? 'bg-white text-teal-700 shadow-sm border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5 text-teal-600" />}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setActiveTab('partners')}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-slate-200 px-3 py-2 rounded-lg border border-slate-700 transition"
+              onClick={() => switchTab('call', 'call-demo')}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold bg-teal-50 hover:bg-teal-100 text-teal-800 px-3.5 py-2.5 rounded-xl border border-teal-200 transition"
             >
-              <Handshake className="w-3.5 h-3.5 text-teal-400" /> Partners
+              <Mic className="w-3.5 h-3.5 text-teal-600" /> Voice Demo
             </button>
             <button
-              onClick={navigateToPilot}
-              className="text-xs bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-4 py-2 rounded-lg transition shadow-md shadow-teal-500/20"
+              onClick={() => switchTab('onboard', 'onboard')}
+              className="text-xs font-bold bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl transition shadow-md shadow-teal-600/20"
             >
               Start 14-Day Pilot
             </button>
           </div>
         </div>
 
-        <div className="flex lg:hidden overflow-x-auto gap-1.5 px-4 py-2 border-t border-slate-900 bg-slate-950 text-xs">
+        {/* Mobile Tab Bar */}
+        <div className="flex lg:hidden overflow-x-auto gap-1.5 px-4 py-2 border-t border-slate-100 bg-slate-50 text-xs font-semibold">
           {[
-            { id: 'simulation', label: 'Platform' },
-            { id: 'sectors', label: 'Specialties' },
-            { id: 'liability', label: 'Guardrails' },
-            { id: 'partners', label: 'Partners' },
-            { id: 'offer', label: '14-Day Pilot' }
+            { id: 'home', hash: '', label: 'Overview' },
+            { id: 'call', hash: 'call-demo', label: 'Call Assistant' },
+            { id: 'chat', hash: 'chat-demo', label: 'Chat Assistant' },
+            { id: 'partners', hash: 'partners', label: 'Partners' },
+            { id: 'onboard', hash: 'onboard', label: '14-Day Pilot' }
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1 rounded-md whitespace-nowrap font-medium ${
+              onClick={() => switchTab(tab.id, tab.hash)}
+              className={`px-3 py-1.5 rounded-lg whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                  : 'text-slate-400 bg-slate-900'
+                  ? 'bg-teal-600 text-white'
+                  : 'text-slate-600 bg-white border border-slate-200'
               }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-      </nav>
+      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {activeTab === 'simulation' && (
-          <div className="space-y-14">
-            <div className="text-center max-w-4xl mx-auto space-y-5">
-              <span className="inline-flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-widest text-teal-400 bg-teal-950/60 border border-teal-500/30 px-3.5 py-1 rounded-full">
-                <Award className="w-3.5 h-3.5" /> Autonomous Patient Access Infrastructure
+      <main className="flex-1">
+        {/* ================================================================= */}
+        {/* TAB 1: BRIGHT CLINICAL ENTERPRISE HOMEPAGE */}
+        {/* ================================================================= */}
+        {activeTab === 'home' && (
+          <div>
+            {/* Executive Split Hero with Soft Pearl-Teal Ambient Glow */}
+            <section className="relative overflow-hidden bg-gradient-to-br from-teal-50/60 via-white to-sky-50/50 border-b border-slate-200/70">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                  <div className="lg:col-span-7 space-y-6">
+                    <div className="inline-flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-teal-700 bg-white border border-teal-200 px-3.5 py-1.5 rounded-full shadow-2xs">
+                      <Award className="w-3.5 h-3.5 text-teal-600" /> Autonomous Patient Access Infrastructure
+                    </div>
+
+                    <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+                      Turn Every Missed Clinic Call Into a{' '}
+                      <span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+                        Booked Consultation.
+                      </span>
+                    </h1>
+
+                    <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+                      Outpatient practices lose 25%–35% of inbound patient calls during busy front-desk check-ins, lunch hours, and after 5:00 PM. Glow AI answers on the first ring, enforces strict clinic scheduling rules, and syncs directly to your calendar—with zero software installed on clinic computers.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3.5 pt-1">
+                      <button
+                        onClick={() => switchTab('onboard', 'onboard')}
+                        className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold px-6 py-3.5 rounded-xl text-sm transition shadow-lg shadow-teal-600/20 flex items-center gap-2"
+                      >
+                        Claim 14-Day Free Pilot <ArrowRight className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => switchTab('call', 'call-demo')}
+                        className="bg-white hover:bg-slate-50 text-slate-900 font-bold px-6 py-3.5 rounded-xl text-sm border border-slate-200 transition shadow-sm flex items-center gap-2"
+                      >
+                        <PhoneCall className="w-4 h-4 text-teal-600" /> Explore Call Assistant
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 pt-5 border-t border-slate-200/80 max-w-xl">
+                      <div>
+                        <div className="text-2xl font-extrabold text-slate-900 font-mono">&lt; 1 Sec</div>
+                        <div className="text-xs text-slate-500 mt-0.5">First-Ring Answer Speed</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-extrabold text-teal-600 font-mono">48 Hrs</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Turnkey Clinic Setup</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-extrabold text-slate-900 font-mono">$0 Risk</div>
+                        <div className="text-xs text-slate-500 mt-0.5">14-Day Free Clinical Pilot</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Bright Elevated Clinical Receptionist Card */}
+                  <div className="lg:col-span-5">
+                    <div className="bg-white/95 backdrop-blur border border-slate-200/90 rounded-3xl p-6 shadow-2xl shadow-teal-900/10 space-y-5">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
+                            S
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-900">Savannah • AI Front Desk</div>
+                            <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Active 24/7 Voice & Web Intake
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[11px] font-mono font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">
+                          HIPAA-Aligned
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 text-xs">
+                        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5">
+                          <div className="text-[10px] font-mono uppercase text-slate-400 mb-1">Incoming After-Hours Call • 6:42 PM</div>
+                          <p className="text-slate-700 leading-relaxed">
+                            “Hi, I’d like to schedule a new patient consultation for Monday morning if you have an opening.”
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-r from-teal-50 to-emerald-50/70 border border-teal-200/80 rounded-2xl p-3.5">
+                          <div className="text-[10px] font-mono uppercase text-teal-700 font-bold mb-1">Savannah • Instant Calendar Sync</div>
+                          <p className="text-slate-800 leading-relaxed">
+                            “I have Monday at 10:00 AM Eastern available. I’ve reserved that slot and sent your confirmation & intake receipt.”
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5 pt-1">
+                        <button
+                          onClick={() => switchTab('call', 'call-demo')}
+                          className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-3 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" /> Call Assistant
+                        </button>
+                        <button
+                          onClick={() => switchTab('chat', 'chat-demo')}
+                          className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold py-3 px-3 rounded-xl transition flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-teal-700" /> Chat Assistant
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ecosystem & Compatibility Strip */}
+                <div className="mt-14 pt-8 border-t border-slate-200/80 text-center space-y-4">
+                  <p className="text-xs font-mono uppercase tracking-widest text-slate-500">
+                    Seamlessly Compatible With Your Existing Clinic Phone & Scheduling Stack
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4">
+                    {[
+                      'Google Calendar',
+                      'Microsoft Outlook 365',
+                      'RingCentral',
+                      'AT&T & Verizon Office',
+                      'Comcast Business',
+                      'Weave VoIP',
+                      'EHR Placeholder Sync'
+                    ].map((tool) => (
+                      <span
+                        key={tool}
+                        className="text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 px-4 py-2 rounded-full shadow-2xs"
+                      >
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* How It Works (3-Step Zero-IT Deployment) */}
+            <section className="py-16 bg-slate-50/70 border-b border-slate-200/70">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+                <div className="text-center max-w-2xl mx-auto space-y-2">
+                  <span className="text-xs font-mono font-semibold uppercase tracking-widest text-teal-700">
+                    Zero-Friction Implementation
+                  </span>
+                  <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Live in 48 Hours Without Changing Your Phone Number
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    No new hardware, no desktop software installation, and zero disruption to your front-desk staff.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[
+                    {
+                      step: 'STEP 01',
+                      icon: PhoneForwarded,
+                      title: 'Keep Your Existing Office Number',
+                      desc: 'Patients continue calling your exact clinic phone number. Your carrier simply forwards calls when lines are busy, unanswered after 3 rings, or after 5:00 PM.'
+                    },
+                    {
+                      step: 'STEP 02',
+                      icon: Layers,
+                      title: 'Custom Protocol & Hours Guardrails',
+                      desc: 'We configure your weekday operating hours, providers, visit types, and non-diagnostic deflection rules so Savannah represents your practice accurately.'
+                    },
+                    {
+                      step: 'STEP 03',
+                      icon: CalendarCheck2,
+                      title: 'Instant Calendar & Front-Desk Alerts',
+                      desc: 'Confirmed consultations appear directly on your Google/Outlook schedule with an instant email summary sent to your reception desk.'
+                    }
+                  ].map((item) => (
+                    <div key={item.step} className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm hover:shadow-md transition space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                          <item.icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-mono font-bold text-slate-400">{item.step}</span>
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
+                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Specialties & Clinical Safety Guardrails */}
+            <section className="py-16 bg-white border-b border-slate-200/70">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+                <div className="text-center max-w-2xl mx-auto space-y-2">
+                  <span className="text-xs font-mono font-semibold uppercase tracking-widest text-teal-700">
+                    Built For Outpatient Healthcare
+                  </span>
+                  <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Tailored Across Medical, Dental & Aesthetic Practices
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-b from-slate-50/90 to-white border border-slate-200 p-6 rounded-2xl space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                      <Stethoscope className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900">Private Outpatient Clinics</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      Captures overflow calls during lunch and post-close while enforcing strict Monday–Friday appointment windows and logging confirmed slots to staff calendars.
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-b from-slate-50/90 to-white border border-slate-200 p-6 rounded-2xl space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900">Specialty & Dental Practices</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      Eliminates voicemail drop-off for high-value new patient exams, routes urgent clinical callbacks to on-call staff, and frees front-desk coordinators to focus on in-clinic patients.
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-b from-slate-50/90 to-white border border-slate-200 p-6 rounded-2xl space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                      <Sparkle className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900">Medical Spas & Aesthetic Centers</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      Books Botox, filler, laser, and Morpheus8 consultations 24/7 while strictly deferring all medical contraindication questions to your licensed providers.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  <div className="bg-white border border-slate-200 p-6 rounded-2xl flex gap-4 items-start shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Strict Non-Diagnostic Boundary</h4>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Glow AI never gives medical advice, diagnoses symptoms, or evaluates contraindications—every clinical question is politely deferred to your physician during the consultation.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-6 rounded-2xl flex gap-4 items-start shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Clean Administrative Separation</h4>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Intake is locked to standard scheduling fields (Name, Callback Phone, Email, Visit Reason) without requiring invasive EHR write-access or clinic PC software.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Light Pearl-Teal Conversion Banner */}
+            <section className="py-16 bg-slate-50/70">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="bg-gradient-to-br from-teal-50 via-white to-emerald-50 border border-teal-200/90 rounded-3xl p-8 sm:p-12 shadow-xl shadow-teal-900/5 flex flex-col lg:flex-row items-center justify-between gap-8">
+                  <div className="space-y-3 text-center lg:text-left max-w-xl">
+                    <span className="inline-block text-xs font-mono font-bold uppercase tracking-widest text-teal-700 bg-white border border-teal-200 px-3 py-1 rounded-full">
+                      Zero-Risk Performance Guarantee
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                      Try Glow AI Free For 14 Days in Your Clinic
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      If our AI Receptionist does not capture qualified patient bookings during your 14-day pilot, you pay $0. Post-pilot flat retainer is just <strong className="text-slate-900">$500/month</strong> with no long-term lock-in.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                    <button
+                      onClick={() => switchTab('onboard', 'onboard')}
+                      className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold px-6 py-3.5 rounded-xl text-sm transition shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2"
+                    >
+                      Start 14-Day Pilot <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => switchTab('call', 'call-demo')}
+                      className="bg-white hover:bg-slate-50 text-slate-800 font-bold px-6 py-3.5 rounded-xl text-sm border border-slate-200 transition shadow-2xs"
+                    >
+                      Test Voice & Chat Demos
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 2: DEDICATED CALL ASSISTANT PAGE (#call-demo) */}
+        {/* ================================================================= */}
+        {activeTab === 'call' && (
+          <div id="call-demo" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3.5 py-1 rounded-full">
+                <Volume2 className="w-3.5 h-3.5" /> 24/7 Autonomous Voice Receptionist
               </span>
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-                Never Miss Another High-Value <br />
-                <span className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-200 bg-clip-text text-transparent">
-                  Patient Call or Consultation.
-                </span>
+              <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+                Meet Savannah: Your Zero-Hold AI Call Assistant
               </h1>
-              <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-                US outpatient clinics lose 25%–35% of inbound calls during busy front-desk check-ins, lunch hours, and after 5:00 PM. Glow AI answers in under 1 second, enforces strict clinic scheduling rules, and books directly into your calendar with zero software installed on clinic PCs.
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+                Answers inbound clinic calls on the first ring with natural human cadence, handles parallel concurrent callers with zero hold music, and books directly into your clinic schedule.
               </p>
+            </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={navigateToPilot}
-                  className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-teal-500/20 flex items-center gap-2"
-                >
-                  Claim 14-Day Free Clinic Pilot <ArrowRight className="w-4 h-4" />
-                </button>
-                <a
-                  href="tel:+18042591091"
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-3 rounded-xl text-sm border border-slate-700 transition flex items-center gap-2"
-                >
-                  <PhoneCall className="w-4 h-4 text-teal-400" /> Call Live Demo: +1 (804) 259-1091
-                </a>
+            {/* Bright Clinical US Phone Demo Card */}
+            <div className="bg-gradient-to-br from-teal-50/90 via-white to-sky-50/80 border border-teal-200 rounded-3xl p-8 sm:p-10 shadow-xl shadow-teal-900/5 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-4">
+                <div className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live US Telephony Line Active 24/7
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                  Call Our Live Demo Line Right Now
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Dial from your mobile or office phone and try booking a consultation, asking for a Saturday appointment, or asking a clinical question to hear how Savannah responds in real time.
+                </p>
+                <div className="pt-1 flex flex-wrap items-center gap-4">
+                  <a
+                    href="tel:+18042591091"
+                    className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-mono font-extrabold text-lg px-6 py-3.5 rounded-xl transition shadow-lg shadow-teal-600/20 inline-flex items-center gap-2.5"
+                  >
+                    <PhoneIncoming className="w-5 h-5" /> +1 (804) 259-1091
+                  </a>
+                  <span className="text-xs text-slate-500 font-mono">
+                    Instant Answer • No PIN Required
+                  </span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 max-w-3xl mx-auto">
-                {[
-                  { metric: '< 1 Sec', label: 'First-Ring Answer Speed' },
-                  { metric: '48 Hours', label: 'Turnkey Clinic Deployment' },
-                  { metric: 'Zero IT', label: 'Keep Existing Office Number' },
-                  { metric: '$0 Risk', label: '14-Day Performance Guarantee' }
-                ].map((item, i) => (
-                  <div key={i} className="bg-slate-900/70 border border-slate-800/90 rounded-xl p-3.5 text-center">
-                    <div className="text-lg sm:text-xl font-extrabold text-teal-400 font-mono">{item.metric}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">{item.label}</div>
-                  </div>
-                ))}
+              <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 space-y-3 text-xs shadow-sm">
+                <div className="font-bold text-teal-700 uppercase tracking-wider font-mono text-[11px]">
+                  4 Things to Test When You Call:
+                </div>
+                <ul className="space-y-2.5 text-slate-700">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                    <span>Ask for a <strong>Monday or Wednesday</strong> consultation slot.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                    <span>Test weekend boundaries by asking for <strong>Saturday</strong>.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                    <span>Ask a clinical question (e.g., sunburn or pregnancy) to hear safe doctor deflection.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                    <span>Complete your 4-point intake and receive a live confirmation email.</span>
+                  </li>
+                </ul>
               </div>
             </div>
 
+            {/* Interactive Voice Call Scenario Explorer */}
+            <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Real Clinic Call Scenarios & Guardrails</h3>
+                  <p className="text-xs text-slate-500">Select a call scenario below to inspect how our voice AI handles real patient conversations.</p>
+                </div>
+                <span className="text-xs font-mono font-semibold text-teal-700 bg-white border border-teal-200 px-3 py-1 rounded-full">
+                  &lt; 800ms Voice Latency
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {voiceScenarios.map((sc, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveVoiceScenario(idx)}
+                    className={`p-4 rounded-2xl border text-left transition ${
+                      activeVoiceScenario === idx
+                        ? 'bg-white border-teal-600 shadow-md ring-2 ring-teal-500/15'
+                        : 'bg-white/70 border-slate-200 hover:bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-mono font-bold uppercase text-teal-700">Scenario 0{idx + 1}</span>
+                      <Play className={`w-3.5 h-3.5 ${activeVoiceScenario === idx ? 'text-teal-600' : 'text-slate-400'}`} />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{sc.title}</div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+                <div className="space-y-2">
+                  <div className="text-[11px] font-mono uppercase text-slate-400">Patient Caller</div>
+                  <p className="text-sm text-slate-800 bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl">
+                    {voiceScenarios[activeVoiceScenario].caller}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[11px] font-mono uppercase text-teal-700 font-bold">Savannah (Glow AI Call Assistant)</div>
+                  <p className="text-sm text-slate-900 bg-teal-50/70 border border-teal-200 p-3.5 rounded-xl">
+                    {voiceScenarios[activeVoiceScenario].ai}
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 text-xs">
+                  <span className="font-semibold text-emerald-700 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" /> {voiceScenarios[activeVoiceScenario].outcome}
+                  </span>
+                  <button
+                    onClick={() => switchTab('onboard', 'onboard')}
+                    className="text-teal-700 font-bold hover:underline inline-flex items-center gap-1"
+                  >
+                    Deploy This For Your Clinic <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 3: DEDICATED CHAT ASSISTANT PAGE (#chat-demo) */}
+        {/* ================================================================= */}
+        {activeTab === 'chat' && (
+          <div id="chat-demo" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+            <div className="text-center max-w-3xl mx-auto space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3.5 py-1 rounded-full">
+                <MessageSquare className="w-3.5 h-3.5" /> Web & SMS Administrative Concierge
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                Interactive Web Receptionist Simulator
+              </h1>
+              <p className="text-sm text-slate-600">
+                Test how our web & SMS assistant enforces Monday–Friday 9 AM–5 PM operating boundaries, deflects clinical questions, and syncs verified 4-point patient intakes to your calendar.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              <div className="lg:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-5 shadow-xl shadow-slate-200/50">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                      <Bot className="w-4 h-4 text-teal-400" />
-                      Interactive Receptionist Simulator
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Bot className="w-4 h-4 text-teal-600" /> Web Receptionist Simulator
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">Mon–Fri 9 AM–5 PM ET</span>
+                  <span className="text-[11px] font-mono text-slate-500">Mon–Fri 9 AM–5 PM ET</span>
                 </div>
 
-                <div className="h-80 overflow-y-auto space-y-3 pr-2 mb-4">
+                <div className="h-80 overflow-y-auto space-y-3 pr-2 mb-4 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
                   {messages.map((m, idx) => (
                     <div key={idx} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div
-                        className={`max-w-[85%] text-xs p-3 rounded-xl leading-relaxed ${
+                        className={`max-w-[85%] text-xs p-3 rounded-2xl leading-relaxed ${
                           m.sender === 'user'
-                            ? 'bg-teal-600 text-white rounded-br-none shadow-md'
-                            : 'bg-slate-800/90 text-slate-200 border border-slate-700/60 rounded-bl-none'
+                            ? 'bg-teal-600 text-white rounded-br-none shadow-sm'
+                            : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-2xs'
                         }`}
                       >
                         {m.text}
@@ -436,7 +865,7 @@ export default function App() {
                   ))}
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="bg-slate-800/90 text-teal-400 border border-slate-700/60 text-xs p-3 rounded-xl rounded-bl-none animate-pulse flex items-center gap-2">
+                      <div className="bg-white text-teal-700 border border-slate-200 text-xs p-3 rounded-2xl rounded-bl-none animate-pulse flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5" /> Receptionist is typing...
                       </div>
                     </div>
@@ -448,13 +877,13 @@ export default function App() {
                   {[
                     'Can I book for this Saturday at 11 AM?',
                     'I have a sunburn, can I still get Morpheus8?',
-                    'I want to book an appointment for Monday at 10 AM',
+                    'Book a consultation for Monday at 10 AM',
                     'My name is Amanda Ross, 804-555-0144, amanda@gmail.com'
                   ].map((chip, idx) => (
                     <button
                       key={idx}
                       onClick={() => setUserInput(chip)}
-                      className="text-[11px] bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/20 px-2.5 py-1 rounded-md transition text-left"
+                      className="text-[11px] bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-lg transition text-left font-medium"
                     >
                       {chip}
                     </button>
@@ -466,13 +895,13 @@ export default function App() {
                     type="text"
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
-                    placeholder="Test a caller inquiry..."
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                    placeholder="Type a patient inquiry..."
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-teal-600"
                   />
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition"
+                    className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center transition"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
@@ -480,262 +909,176 @@ export default function App() {
               </div>
 
               <div className="lg:col-span-6 space-y-4">
-                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-                    <span className="text-xs font-semibold tracking-wide text-slate-300 flex items-center gap-2">
-                      <Database className="w-4 h-4 text-teal-400" />
-                      Live 4-Point Patient Intake & Calendar Feed
+                <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <Database className="w-4 h-4 text-teal-600" /> Live 4-Point Administrative Intake
                     </span>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                       SYNC ACTIVE
                     </span>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">Current Pipeline Stage</div>
-                        <div className="text-xs font-semibold text-teal-300">{leadStage}</div>
-                      </div>
-                      <CheckCircle2 className="w-5 h-5 text-teal-400" />
+                  <div className="p-3.5 bg-white border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase font-mono">Current Pipeline Stage</div>
+                      <div className="text-xs font-bold text-teal-700 mt-0.5">{leadStage}</div>
                     </div>
+                    <CheckCircle2 className="w-5 h-5 text-teal-600" />
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-500">1. Full Legal Name</div>
-                        <div className="font-semibold text-white truncate">{intakeState.name || 'Awaiting...'}</div>
-                      </div>
-                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-500">2. Phone Number</div>
-                        <div className="font-semibold text-white truncate">{intakeState.phone || 'Awaiting...'}</div>
-                      </div>
-                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-500">3. Email Address</div>
-                        <div className="font-semibold text-white truncate">{intakeState.email || 'Awaiting...'}</div>
-                      </div>
-                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                        <div className="text-[10px] text-slate-500">4. Desired Service</div>
-                        <div className="font-semibold text-teal-300 truncate">{intakeState.service || 'Doctor Consultation'}</div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-2.5 text-xs">
+                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                      <div className="text-[10px] text-slate-400">1. Full Legal Name</div>
+                      <div className="font-bold text-slate-900 truncate mt-0.5">{intakeState.name || 'Awaiting...'}</div>
                     </div>
+                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                      <div className="text-[10px] text-slate-400">2. Callback Phone</div>
+                      <div className="font-bold text-slate-900 truncate mt-0.5">{intakeState.phone || 'Awaiting...'}</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                      <div className="text-[10px] text-slate-400">3. Email Address</div>
+                      <div className="font-bold text-slate-900 truncate mt-0.5">{intakeState.email || 'Awaiting...'}</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                      <div className="text-[10px] text-slate-400">4. Desired Service</div>
+                      <div className="font-bold text-teal-700 truncate mt-0.5">{intakeState.service || 'Doctor Consultation'}</div>
+                    </div>
+                  </div>
 
-                    <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2">
-                      <div className="text-[10px] text-slate-500 uppercase tracking-wider">Direct Calendar Feed (EHR Compatible)</div>
-                      <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                        {syncedBookings.map((b) => (
-                          <div key={b.id} className="text-xs bg-slate-900 border border-slate-800 p-2.5 rounded-lg flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold text-white flex items-center gap-1.5">
-                                <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-400" />
-                                {b.patient}
-                              </div>
-                              <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                <PhoneCall className="w-3 h-3 text-teal-400" /> {b.phone}
-                              </div>
-                              <div className="text-[10px] text-slate-500 mt-0.5">{b.service} • {b.time}</div>
+                  <div className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2">
+                    <div className="text-[10px] text-slate-400 uppercase font-mono">Confirmed Calendar Feed</div>
+                    <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                      {syncedBookings.map((b) => (
+                        <div key={b.id} className="text-xs bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                              <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-600" /> {b.patient}
                             </div>
-                            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/40">
-                              {b.status}
-                            </span>
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              {b.phone} • {b.service} • {b.time}
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                          <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {b.status}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-teal-950/20 border border-teal-500/20 rounded-xl p-3.5 flex gap-3 items-center">
-                  <Clock className="w-5 h-5 text-teal-400 shrink-0" />
-                  <div className="text-xs text-slate-300">
-                    <strong className="text-white">Zero Staff Burden:</strong> Clinics keep their exact existing phone number—unanswered or after-hours calls forward automatically to your dedicated Glow AI line.
+                <div className="bg-teal-50/70 border border-teal-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                  <div className="text-xs text-slate-700">
+                    <strong className="text-slate-900">Want this live on your clinic website & phone line?</strong> Deploy free for 14 days.
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
-              <div className="text-center max-w-2xl mx-auto space-y-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-widest text-teal-400">
-                  Zero-Friction Deployment
-                </span>
-                <h2 className="text-2xl font-bold text-white">How Clinic Onboarding Works in 3 Simple Steps</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {[
-                  {
-                    step: '01',
-                    icon: PhoneForwarded,
-                    title: 'Keep Your Existing Phone Number',
-                    desc: 'No hardware changes or new phone lines for patients to learn. Your carrier (AT&T, Verizon, RingCentral, Comcast, Weave) simply enables conditional forwarding when busy, unanswered after 3 rings, or after 5:00 PM.'
-                  },
-                  {
-                    step: '02',
-                    icon: Layers,
-                    title: '48-Hour Custom Protocol Setup',
-                    desc: 'We configure your clinic hours, providers, visit types, and non-clinical deflection boundaries so Savannah represents your practice with executive polish.'
-                  },
-                  {
-                    step: '03',
-                    icon: CalendarCheck2,
-                    title: 'Direct Calendar & Email Alerts',
-                    desc: 'Every booked consultation lands straight on your Google/Outlook schedule (or EHR placeholder feed) with an instant summary email sent to your front desk.'
-                  }
-                ].map((item) => (
-                  <div key={item.step} className="bg-slate-950/90 border border-slate-800 p-5 rounded-xl space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <item.icon className="w-5 h-5 text-teal-400" />
-                      <span className="text-xs font-mono font-bold text-slate-600">STEP {item.step}</span>
-                    </div>
-                    <h3 className="text-sm font-bold text-white">{item.title}</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'sectors' && (
-          <div className="max-w-5xl mx-auto space-y-8">
-            <div className="text-center space-y-2">
-              <span className="text-xs font-mono font-semibold uppercase tracking-widest text-teal-400 bg-teal-950/60 border border-teal-500/30 px-3 py-1 rounded-full">
-                Tailored Across Clinical Workflows
-              </span>
-              <h2 className="text-3xl font-bold text-white">Serving Outpatient Clinics, Hospitals & MedSpas</h2>
-              <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">
-                Purpose-built AI communication infrastructure customized to the administrative boundaries of your practice.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-xl hover:border-teal-500/40 transition space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-2">
-                  <Stethoscope className="w-5 h-5" />
-                </div>
-                <div className="text-white font-bold text-base">Private Outpatient Clinics</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Autonomous phone answering during lunch hours and post-close. Enforces strict Monday–Friday clinic boundaries, collects verified contact details, and logs bookings directly to staff schedules without hold times.
-                </p>
-                <div className="text-[11px] font-mono text-teal-400 pt-1">✓ Mon–Fri 9 AM–5 PM rules • Calendar sync</div>
-              </div>
-
-              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-xl hover:border-teal-500/40 transition space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div className="text-white font-bold text-base">Hospitals & Specialty Centers</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Zero-wait triage for departmental routing, physician schedule coordination, and routine intake. Offloads high call volumes from switchboards without adding administrative headcount or software friction.
-                </p>
-                <div className="text-[11px] font-mono text-emerald-400 pt-1">✓ Switchboard relief • Department routing</div>
-              </div>
-
-              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-xl hover:border-teal-500/40 transition space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-2">
-                  <Sparkle className="w-5 h-5" />
-                </div>
-                <div className="text-white font-bold text-base">Medical Spas & Aesthetic Practices</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Captures high-ticket Botox, filler, laser, and Morpheus8 consultations 24/7 while deferring all clinical contraindication assessments directly to your licensed providers.
-                </p>
-                <div className="text-[11px] font-mono text-teal-400 pt-1">✓ 24/7 consultation capture • Zero medical risk</div>
-              </div>
-            </div>
-
-            <div className="text-center pt-2">
-              <button
-                onClick={navigateToPilot}
-                className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-6 py-3 rounded-xl text-xs transition inline-flex items-center gap-2"
-              >
-                Configure For Your Practice <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'liability' && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-white">Clinical Safety & Administrative Guardrails</h2>
-              <p className="text-slate-400 text-xs">Strict non-diagnostic intake architecture engineered for US healthcare compliance.</p>
-            </div>
-            <div className="space-y-4">
-              <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl flex gap-3.5">
-                <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
-                <div>
-                  <div className="font-bold text-white text-sm">Non-Clinical Boundary Guardrail</div>
-                  <div className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    The receptionist never diagnoses symptoms or evaluates contraindications (pregnancy, sunburn, medications, recovery times) and defers all medical evaluation to the physician during the in-person visit.
-                  </div>
-                </div>
-              </div>
-              <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl flex gap-3.5">
-                <Lock className="w-6 h-6 text-teal-400 shrink-0" />
-                <div>
-                  <div className="font-bold text-white text-sm">Deterministic 4-Point Administrative Intake</div>
-                  <div className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Intake is locked strictly to Full Legal Name, Callback Number, Email Address, and Stated Reason for Visit—keeping scheduling fast, accurate, and cleanly separated from EHR clinical charts.
-                  </div>
+                  <button
+                    onClick={() => switchTab('onboard', 'onboard')}
+                    className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-2 rounded-xl text-xs shrink-0 transition"
+                  >
+                    Start 14-Day Pilot
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* ================================================================= */}
+        {/* TAB 4: CLINICAL & CHANNEL PARTNERS PROGRAM (#partners) */}
+        {/* ================================================================= */}
         {activeTab === 'partners' && (
-          <div id="partners" className="max-w-5xl mx-auto space-y-10">
+          <div id="partners" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-400 bg-teal-950/60 border border-teal-500/30 px-3.5 py-1 rounded-full">
-                <Users className="w-3.5 h-3.5" /> Clinical & Channel Partner Network
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3.5 py-1 rounded-full">
+                <Users className="w-3.5 h-3.5" /> Glow AI Partnership Program
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-                Partner With Glow AI to Modernize US Outpatient Practices
-              </h2>
-              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-                Designed for practicing physicians, healthcare consultants, and regional channel leaders introducing medical, dental, and aesthetic practices to zero-hold AI reception infrastructure.
+              <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+                Build a Stronger Healthcare AI Practice With Glow AI
+              </h1>
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+                Partner with us to help outpatient clinics, dental offices, and medical spas eliminate missed-call revenue leakage with turnkey, production-ready voice automation.
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="bg-gradient-to-b from-teal-50/60 to-white border border-slate-200 rounded-2xl p-6 text-center shadow-2xs">
+                <div className="text-3xl font-extrabold text-teal-600 font-mono">350,000+</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">US Outpatient & Dental Clinics</div>
+                <p className="text-xs text-slate-500 mt-1">High front-desk call volume with chronic staffing bottlenecks</p>
+              </div>
+              <div className="bg-gradient-to-b from-slate-50 to-white border border-slate-200 rounded-2xl p-6 text-center shadow-2xs">
+                <div className="text-3xl font-extrabold text-slate-900 font-mono">$4,500+/mo</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">Avg. Clinic Missed-Call Leakage</div>
+                <p className="text-xs text-slate-500 mt-1">Just 3 missed new-patient calls/week costs thousands monthly</p>
+              </div>
+              <div className="bg-gradient-to-b from-emerald-50/60 to-white border border-slate-200 rounded-2xl p-6 text-center shadow-2xs">
+                <div className="text-3xl font-extrabold text-emerald-600 font-mono">14-Day Pilot</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">Zero-Friction Clinic Close</div>
+                <p className="text-xs text-slate-500 mt-1">Practices verify real recovered bookings before paying $500/mo</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl space-y-3">
-                <div className="text-teal-400 font-bold text-base">1. Zero Technical Burden</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Partners simply make a warm introduction or share our live demo line (+1 804-259-1091). Our engineering team handles 100% of custom voice configuration, carrier forwarding guidance, calendar sync, and ongoing support.
-                </p>
-              </div>
-
-              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl space-y-3">
-                <div className="text-teal-400 font-bold text-base">2. Effortless 14-Day Pilot Close</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Practices experience real recovered patient bookings for 14 days at $0 setup cost before paying a cent—eliminating sales friction and protecting your professional reputation with every clinic you introduce.
-                </p>
-              </div>
-
-              <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl space-y-3">
-                <div className="text-teal-400 font-bold text-base">3. Dedicated Partner Attribution</div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Every practice onboarded through your network is tracked directly via your partner code in our onboarding portal, with transparent recurring partner economics and priority deployment slots.
-                </p>
-              </div>
+              {[
+                {
+                  icon: Handshake,
+                  title: 'Zero Technical Burden',
+                  desc: 'Simply introduce a practice or share our live demo line (+1 804-259-1091). Our engineering team handles 100% of setup, forwarding, and support.'
+                },
+                {
+                  icon: TrendingUp,
+                  title: 'High-Converting 14-Day Trial',
+                  desc: 'Clinics deploy risk-free for 14 days at $0 upfront cost—protecting your professional credibility while proving immediate ROI.'
+                },
+                {
+                  icon: FileCheck2,
+                  title: 'Co-Branded Outreach Assets',
+                  desc: 'Access ready-to-send clinical introduction letters, specialty ROI briefs, and dedicated partner email routing (@glowaiautomation.com).'
+                },
+                {
+                  icon: Headphones,
+                  title: 'Dedicated Founder & Engineering Desk',
+                  desc: 'Direct priority onboarding for every practice you introduce, with 48-hour turnaround from clinic form submission to live calls.'
+                },
+                {
+                  icon: Globe,
+                  title: 'Transparent Partner Attribution',
+                  desc: 'Every clinic submitted with your Partner Name in our onboarding portal is logged cleanly for recurring partner economics.'
+                },
+                {
+                  icon: ShieldCheck,
+                  title: 'Zero Operational Liability',
+                  desc: 'All client contracting, telephony infrastructure, and technical maintenance are managed directly by Glow AI Automation.'
+                }
+              ].map((card, i) => (
+                <div key={i} className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                    <card.icon className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900">{card.title}</h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">{card.desc}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-teal-950/40 border border-teal-500/30 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="bg-gradient-to-r from-teal-50 via-white to-emerald-50 border border-teal-200 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md shadow-teal-900/5">
               <div className="space-y-1.5 text-center sm:text-left">
-                <h3 className="text-lg sm:text-xl font-bold text-white">Have a Practice Ready for a 14-Day Pilot?</h3>
-                <p className="text-xs text-slate-300">
-                  Submit their clinic profile directly through our onboarding portal with your partner name, or connect with our founder desk.
+                <h3 className="text-xl font-bold text-slate-900">Have a Practice Ready for a 14-Day Pilot?</h3>
+                <p className="text-xs text-slate-600">
+                  Submit their clinic profile directly through our onboarding portal with your Partner Name, or connect with our founder desk.
                 </p>
               </div>
               <div className="flex flex-wrap justify-center gap-3 shrink-0">
                 <button
-                  onClick={navigateToPilot}
-                  className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-5 py-3 rounded-xl text-xs transition flex items-center gap-2"
+                  onClick={() => switchTab('onboard', 'onboard')}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-3 rounded-xl text-xs transition flex items-center gap-2 shadow-sm"
                 >
                   Onboard a Clinic Now <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
                   href="mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20Partner%20Inquiry"
-                  className="bg-slate-950 hover:bg-slate-800 text-slate-200 font-semibold px-5 py-3 rounded-xl text-xs border border-slate-700 transition"
+                  className="bg-white hover:bg-slate-50 text-slate-800 font-semibold px-5 py-3 rounded-xl text-xs border border-slate-200 transition"
                 >
                   Contact Partner Desk
                 </a>
@@ -744,35 +1087,21 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'offer' && (
-          <div className="max-w-4xl mx-auto space-y-8">
-            <div className="bg-slate-900/90 border border-teal-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5 text-center">
-              <span className="text-xs font-mono uppercase tracking-widest text-teal-400 bg-teal-950 px-3 py-1 rounded-full border border-teal-800">
+        {/* ================================================================= */}
+        {/* TAB 5: 14-DAY PILOT + LIVE ONBOARDING PORTAL (#onboard) */}
+        {/* ================================================================= */}
+        {activeTab === 'onboard' && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+            <div className="bg-gradient-to-br from-teal-50 via-white to-emerald-50/70 border border-teal-200 rounded-3xl p-8 sm:p-10 shadow-lg shadow-teal-900/5 text-center space-y-4">
+              <span className="inline-block text-xs font-mono font-bold uppercase tracking-widest text-teal-700 bg-white border border-teal-200 px-3 py-1 rounded-full">
                 Zero-Risk Performance Guarantee
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white">The 14-Day Free Clinical Pilot</h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                Deploy our autonomous voice receptionist across your clinic channels for 14 days. If it does not capture qualified appointments and eliminate missed calls, you pay nothing.
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                The 14-Day Free Clinical Pilot
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Deploy Glow AI across your clinic phone overflow and after-hours lines for 14 days. If we do not capture qualified patient bookings for your practice, you pay nothing. Post-pilot flat retainer is just <strong className="text-slate-900">$500/month</strong> with no long-term lock-in.
               </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-xs text-slate-300 bg-slate-950/70 border border-slate-800 p-5 rounded-xl max-w-2xl mx-auto">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Turnkey 48-hour setup handled end-to-end</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Customized to your clinic schedule & providers</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Zero software installation needed on clinic PCs</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
-                  <span>Post-pilot: Flat $500/month retainer (no lock-in)</span>
-                </div>
-              </div>
             </div>
 
             <ClinicOnboardingForm />
@@ -780,17 +1109,53 @@ export default function App() {
         )}
       </main>
 
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-8 px-4 text-center text-xs text-slate-500 space-y-2 mt-12">
-        <div className="flex flex-wrap justify-center gap-4 text-slate-400">
-          <button onClick={() => setActiveTab('simulation')} className="hover:text-teal-400 transition">Platform</button>
-          <button onClick={() => setActiveTab('sectors')} className="hover:text-teal-400 transition">Specialties</button>
-          <button onClick={() => setActiveTab('partners')} className="hover:text-teal-400 transition">Clinical Partners</button>
-          <button onClick={navigateToPilot} className="hover:text-teal-400 transition">14-Day Pilot Onboarding</button>
+      {/* Clean Light Multi-Column Enterprise Footer */}
+      <footer className="bg-slate-50 text-slate-600 border-t border-slate-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <span className="font-extrabold text-base text-slate-900 tracking-tight">GLOW AI</span>
+            </div>
+            <p className="text-slate-500 leading-relaxed">
+              Autonomous 24/7 voice reception and patient scheduling infrastructure built for US outpatient clinics, dental practices, and medical spas.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Live Demos</div>
+            <ul className="space-y-2">
+              <li><button onClick={() => switchTab('call', 'call-demo')} className="hover:text-teal-700 transition">Call Assistant (Voice Demo)</button></li>
+              <li><button onClick={() => switchTab('chat', 'chat-demo')} className="hover:text-teal-700 transition">Chat Assistant (Web Demo)</button></li>
+              <li><button onClick={() => switchTab('onboard', 'onboard')} className="hover:text-teal-700 transition">14-Day Free Clinical Pilot</button></li>
+            </ul>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Company & Partners</div>
+            <ul className="space-y-2">
+              <li><button onClick={() => switchTab('home', '')} className="hover:text-teal-700 transition">Platform Overview</button></li>
+              <li><button onClick={() => switchTab('partners', 'partners')} className="hover:text-teal-700 transition">Clinical Partner Program</button></li>
+              <li><a href="mailto:somesh@glowaiautomation.com" className="hover:text-teal-700 transition">Contact Engineering Desk</a></li>
+            </ul>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Direct Contact</div>
+            <ul className="space-y-2 font-mono text-[11px]">
+              <li className="text-teal-700 font-bold">Demo: +1 (804) 259-1091</li>
+              <li>Desk: somesh@glowaiautomation.com</li>
+              <li>Outreach: mrvr@glowaiautomation.com</li>
+              <li className="text-slate-400">Serving Clinics Across USA & Canada</li>
+            </ul>
+          </div>
         </div>
-        <p>© 2026 Glow AI Automation. Autonomous Healthcare Receptionist Infrastructure.</p>
-        <p className="font-mono text-[11px] text-slate-600">
-          Live US Demo: +1 (804) 259-1091 • Direct Desk: somesh@glowaiautomation.com
-        </p>
+
+        <div className="border-t border-slate-200/80 py-5 px-4 text-center text-[11px] text-slate-500">
+          © 2026 Glow AI Automation. All rights reserved. Non-Diagnostic Administrative Scheduling Infrastructure.
+        </div>
       </footer>
     </div>
   );
