@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { CheckCircle2, PhoneCall, Calendar, Building2, Clock, Stethoscope, ArrowRight, Loader2 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -23,6 +24,27 @@ export default function ClinicOnboardingForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
+    if (supabase) {
+      await supabase.from('clinics').insert([
+        {
+          clinic_name: formData.clinicName,
+          contact_name: `${formData.contactName} (${formData.contactTitle})`,
+          work_email: formData.email.trim().toLowerCase(),
+          direct_phone: formData.phone,
+          main_office_number: formData.mainClinicNumber,
+          phone_carrier: formData.phoneProvider,
+          call_routing_mode: formData.forwardingMode,
+          operating_days: formattedDays,
+          operating_hours: formattedHours,
+          lunch_overflow: formData.lunchBreak,
+          calendar_system: formData.calendarPlatform,
+          services_offered: allServices || 'General Consultations',
+          partner_code: (formData.partnerCode || 'DIRECT').trim().toUpperCase(),
+          pipeline_stage: '14-Day Pilot Active'
+        }
+      ]);
+    }
+
     try {
       const hashQuery = window.location.hash.split('?')[1] || '';
       const searchQuery = window.location.search.replace(/^\?/, '');

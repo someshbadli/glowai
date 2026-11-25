@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import {
   ShieldCheck,
   CreditCard,
@@ -59,6 +60,17 @@ const AUTHORIZED_ACCOUNTS = {
 
 export default function PortalWorkspace() {
   const [session, setSession] = useState(() => {
+    if (supabase && session) {
+      await supabase.from('portal_tickets').insert([
+        {
+          clinic_email: session.email,
+          clinic_name: clinicProfile?.clinic_name || session.name,
+          ticket_type: subject.includes('Modification') ? 'modification' : 'support',
+          category: payload.Modification_Category || payload.Subject || 'General',
+          details: payload.Requested_Changes || payload.Message || ''
+        }
+      ]);
+    }
     try {
       const saved = localStorage.getItem('glow_portal_session');
       return saved ? JSON.parse(saved) : null;
@@ -72,6 +84,51 @@ export default function PortalWorkspace() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [liveClinics, setLiveClinics] = useState([]);
+  const [livePayments, setLivePayments] = useState([]);
+  const [clinicProfile, setClinicProfile] = useState(null);
+
+  useEffect(() => {
+    if (!supabase || !session) return;
+
+    const loadData = async () => {
+      if (session.role === 'partner') {
+        let query = supabase.from('clinics').select('*').order('created_at', { ascending: false });
+        if (session.code !== 'ADMIN') {
+          query = query.eq('partner_code', session.code);
+        }
+        const { data } = await query;
+        if (data) setLiveClinics(data);
+      } else if (session.role === 'client') {
+        const { data: cData } = await supabase
+          .from('clinics')
+          .select('*')
+          .eq('work_email', session.email)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (cData && cData[0]) setClinicProfile(cData[0]);
+
+        const { data: pData } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('clinic_email', session.email)
+          .order('created_at', { ascending: false });
+        if (pData) setLivePayments(pData);
+      }
+    };
+
+    loadData();
+
+    const channel = supabase
+      .channel('portal-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clinics' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, loadData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session]);
 
   // Client Modification & Support Form States
   const [modType, setModType] = useState('Update Operating Hours / Holiday Closure');
@@ -576,7 +633,7 @@ export default function PortalWorkspace() {
   // =========================================================================
   // VIEW 3: PARTNER & AGENT PORTAL
   // =========================================================================
-  const partnerClients = [];
+  const partnerClients = liveClinics;
 
   return (
     <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -643,23 +700,23 @@ export default function PortalWorkspace() {
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <Users className="w-4 h-4 text-teal-600" /> Referred Clinics
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">0</div>
-          <div className="text-xs font-semibold text-slate-500 mt-1">0 Active Pilots ? 0 Demos Scheduled</div>
+          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">{partnerClients.length}</div>
+          <div className="text-xs font-semibold text-slate-500 mt-1">{partnerClients.filter(c => c.pipeline_stage?.includes('Pilot')).length} Active Pilots ? {partnerClients.filter(c => c.pipeline_stage?.includes('Active Paying')).length} Paying</div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-emerald-600" /> Active Client MRR
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">$0.00</div>
-          <div className="text-xs font-semibold text-teal-700 mt-1">$0.00 Pending Pilot Conversions</div>
+          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">${partnerClients.filter(c => c.pipeline_stage === 'Active Paying').reduce((s, c) => s + Number(c.monthly_rate || 500), 0).toFixed(2)}</div>
+          <div className="text-xs font-semibold text-teal-700 mt-1">${partnerClients.filter(c => c.pipeline_stage !== 'Active Paying').reduce((s, c) => s + Number(c.monthly_rate || 500), 0).toFixed(2)} Pending Pilot Conversions</div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-teal-600" /> Total Commissions Earned
           </div>
-          <div className="text-3xl font-extrabold text-emerald-600 font-mono mt-2">$0.00</div>
+          <div className="text-3xl font-extrabold text-emerald-600 font-mono mt-2">${partnerClients.reduce((s, c) => s + Number(c.commission_earned || 0), 0).toFixed(2)}</div>
           <div className="text-xs font-semibold text-slate-500 mt-1">$500 Day-1 bounty or $50/mo per active client</div>
         </div>
 
@@ -710,17 +767,17 @@ export default function PortalWorkspace() {
                 partnerClients.map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/70">
                     <td className="py-4 pr-4">
-                      <div className="font-extrabold text-slate-900">{row.clinic}</div>
-                      <div className="text-xs text-slate-500">{row.contact}</div>
+                      <div className="font-extrabold text-slate-900">{row.clinic_name || row.clinic}</div>
+                      <div className="text-xs text-slate-500">{row.contact_name || row.contact}</div>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${row.statusColor}`}>
-                        {row.stage}
+                      <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${row.pipeline_stage === "Active Paying" ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-amber-700 bg-amber-50 border-amber-200"}`}>
+                        {row.pipeline_stage || row.stage || "14-Day Pilot Active"}
                       </span>
                     </td>
-                    <td className="py-4 px-4 font-mono text-xs font-bold">{row.monthlyBill}</td>
-                    <td className="py-4 px-4 text-xs font-semibold text-slate-700">{row.commissionModel}</td>
-                    <td className="py-4 pl-4 text-right font-mono text-xs font-extrabold text-slate-900">{row.earned}</td>
+                    <td className="py-4 px-4 font-mono text-xs font-bold">{`${row.monthly_rate || 500}/mo`}</td>
+                    <td className="py-4 px-4 text-xs font-semibold text-slate-700">{row.commission_option || row.commissionModel || "Option A: $500 Day-1 Bounty"}</td>
+                    <td className="py-4 pl-4 text-right font-mono text-xs font-extrabold text-slate-900">{`${Number(row.commission_earned || 0).toFixed(2)}`}</td>
                   </tr>
                 ))
               )}
