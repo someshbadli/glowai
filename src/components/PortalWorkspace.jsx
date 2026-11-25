@@ -18,8 +18,44 @@ import {
   Send,
   Loader2,
   Sparkles,
-  FileText
+  FileText,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
+
+const AUTHORIZED_ACCOUNTS = {
+  'mrvr@glowaiautomation.com': {
+    password: 'GlowVijay2026!',
+    role: 'partner',
+    name: 'Dr. Vijay (Clinical Advisor)',
+    code: 'VIJAY'
+  },
+  'vikas@glowaiautomation.com': {
+    password: 'GlowVikas2026!',
+    role: 'partner',
+    name: 'Vikas (Channel Partner)',
+    code: 'VIKAS'
+  },
+  'subbu@glowaiautomation.com': {
+    password: 'GlowSubbu2026!',
+    role: 'partner',
+    name: 'Subbu Sir (Channel Partner)',
+    code: 'SUBBU'
+  },
+  'somesh@glowaiautomation.com': {
+    password: 'GlowAdmin2026!',
+    role: 'partner',
+    name: 'Somesh Badli (Founder & Admin)',
+    code: 'ADMIN'
+  },
+  'frontdesk@richmondclinic.com': {
+    password: 'GlowClinic2026!',
+    role: 'client',
+    name: 'Richmond Aesthetic & Outpatient Center'
+  }
+};
 
 export default function PortalWorkspace() {
   const [session, setSession] = useState(() => {
@@ -30,18 +66,11 @@ export default function PortalWorkspace() {
       return null;
     }
   });
-  const [loginEmail, setLoginEmail] = useState('');
 
-  const updateSession = (nextSession) => {
-    setSession(nextSession);
-    try {
-      if (nextSession) {
-        localStorage.setItem('glow_portal_session', JSON.stringify(nextSession));
-      } else {
-        localStorage.removeItem('glow_portal_session');
-      }
-    } catch {}
-  };
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Client Modification & Support Form States
@@ -55,54 +84,71 @@ export default function PortalWorkspace() {
   const [supportSending, setSupportSending] = useState(false);
   const [supportSent, setSupportSent] = useState(false);
 
+  const updateSession = (nextSession) => {
+    setSession(nextSession);
+    try {
+      if (nextSession) {
+        localStorage.setItem('glow_portal_session', JSON.stringify(nextSession));
+      } else {
+        localStorage.removeItem('glow_portal_session');
+      }
+    } catch {}
+  };
+
   const wisePaymentUrl =
     import.meta.env.VITE_WISE_PAYMENT_LINK ||
     'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20%24500%20Monthly%20Subscription%20Invoice%20Request';
 
   const handleLogin = (e) => {
     e.preventDefault();
+    setLoginError('');
+
     const cleanEmail = loginEmail.trim().toLowerCase();
-    if (!cleanEmail) return;
+    const cleanPass = loginPassword.trim();
 
-    if (
-      cleanEmail.includes('mrvr@') ||
-      cleanEmail.includes('vijay') ||
-      cleanEmail.includes('vikas') ||
-      cleanEmail.includes('subbu') ||
-      cleanEmail.includes('partner') ||
-      cleanEmail.endsWith('@glowaiautomation.com')
-    ) {
-      const isVikas = cleanEmail.includes('vikas');
+    if (!cleanEmail || !cleanPass) {
+      setLoginError('Please enter both your registered email address and password.');
+      return;
+    }
+
+    // Check explicit authorized partner/client accounts first
+    const account = AUTHORIZED_ACCOUNTS[cleanEmail];
+    if (account) {
+      if (cleanPass !== account.password) {
+        setLoginError('Incorrect password for this account. Please verify your credentials.');
+        return;
+      }
       updateSession({
-        role: 'partner',
+        role: account.role,
         email: cleanEmail,
-        name: isVikas ? 'Vikas (Channel Partner)' : 'Dr. Vijay (Clinical Advisor)',
-        code: isVikas ? 'VIKAS' : 'VIJAY'
+        name: account.name,
+        code: account.code
       });
-    } else {
+      setLoginPassword('');
+      return;
+    }
+
+    // Block unrecognized @glowaiautomation.com partner addresses
+    if (cleanEmail.endsWith('@glowaiautomation.com')) {
+      setLoginError('Partner account not recognized or invalid password. Contact somesh@glowaiautomation.com.');
+      return;
+    }
+
+    // Active clinic client login (requires the issued clinic portal password)
+    if (cleanPass === 'GlowClinic2026!') {
+      const clinicLabel = cleanEmail.split('@')[1]?.split('.')[0] || 'Enrolled Practice';
+      const formattedName =
+        clinicLabel.charAt(0).toUpperCase() + clinicLabel.slice(1) + ' Clinical Practice';
       updateSession({
         role: 'client',
         email: cleanEmail,
-        name: 'Richmond Aesthetic & Outpatient Center'
+        name: formattedName
       });
+      setLoginPassword('');
+      return;
     }
-  };
 
-  const quickDemoLogin = (role) => {
-    if (role === 'partner') {
-      updateSession({
-        role: 'partner',
-        email: 'mrvr@glowaiautomation.com',
-        name: 'Dr. Vijay (Clinical Partner)',
-        code: 'VIJAY'
-      });
-    } else {
-      updateSession({
-        role: 'client',
-        email: 'frontdesk@richmondclinic.com',
-        name: 'Richmond Aesthetic & Outpatient Center'
-      });
-    }
+    setLoginError('Invalid email or password. Use the credentials issued in your Glow AI welcome email.');
   };
 
   const handleCopyReferral = () => {
@@ -135,7 +181,7 @@ export default function PortalWorkspace() {
   };
 
   // =========================================================================
-  // VIEW 1: PORTAL SIGN-IN SCREEN
+  // VIEW 1: PASSWORD-PROTECTED PORTAL SIGN-IN SCREEN
   // =========================================================================
   if (!session) {
     return (
@@ -148,7 +194,7 @@ export default function PortalWorkspace() {
             Glow AI Client &amp; Partner Portal
           </h1>
           <p className="text-base font-medium text-slate-700 leading-relaxed">
-            Clinics can manage subscriptions, request schedule modifications, and reach priority support. Clinical partners can track referred practices, client billing, and earned commissions.
+            Sign in with your assigned credentials to manage clinic subscriptions, service modifications, support tickets, or partner commission ledgers.
           </p>
         </div>
 
@@ -156,18 +202,26 @@ export default function PortalWorkspace() {
           {/* Login Form Card */}
           <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-8 shadow-xl shadow-teal-900/5 space-y-6">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-900">Sign In to Your Workspace</h2>
+              <h2 className="text-xl font-extrabold text-slate-900">Secure Workspace Login</h2>
               <p className="text-sm font-medium text-slate-600 mt-1">
-                Enter your registered clinic or <span className="font-mono text-teal-700">@glowaiautomation.com</span> partner email.
+                Enter your registered clinic or <span className="font-mono text-teal-700">@glowaiautomation.com</span> partner credentials.
               </p>
             </div>
 
+            {loginError && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3.5 text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-800 mb-1.5">Work or Partner Email Address *</label>
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">Email Address *</label>
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   placeholder="e.g., frontdesk@yourclinic.com or mrvr@glowaiautomation.com"
@@ -175,37 +229,44 @@ export default function PortalWorkspace() {
                 />
               </div>
 
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-bold text-slate-800">Password *</label>
+                  <a
+                    href="mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20Portal%20Password%20Reset"
+                    className="text-xs font-bold text-teal-700 hover:underline"
+                  >
+                    Forgot / Request Password?
+                  </a>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Enter your workspace password"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-11 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-teal-600/20"
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3.5 px-6 rounded-xl text-sm transition shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2"
               >
-                Access Workspace →
+                <Lock className="w-4 h-4" /> Sign In to Workspace
               </button>
             </form>
-
-            <div className="pt-4 border-t border-slate-100 space-y-2.5">
-              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
-                Instant Live Role Previews:
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => quickDemoLogin('client')}
-                  className="bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-slate-800 font-bold text-xs py-3 px-4 rounded-xl transition text-left flex items-center justify-between"
-                >
-                  <span>Preview Clinic Client Portal</span>
-                  <ArrowUpRight className="w-4 h-4 text-teal-600" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickDemoLogin('partner')}
-                  className="bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-slate-800 font-bold text-xs py-3 px-4 rounded-xl transition text-left flex items-center justify-between"
-                >
-                  <span>Preview Partner / Agent Portal</span>
-                  <ArrowUpRight className="w-4 h-4 text-teal-600" />
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Side Overview Card */}
@@ -214,7 +275,7 @@ export default function PortalWorkspace() {
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-md">
                 <Sparkles className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900">Everything in One Place</h3>
+              <h3 className="text-lg font-extrabold text-slate-900">Protected Role-Based Access</h3>
               <ul className="space-y-3 text-sm font-medium text-slate-700">
                 <li className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-1" />
@@ -228,7 +289,7 @@ export default function PortalWorkspace() {
             </div>
 
             <div className="bg-white/90 border border-teal-200/80 rounded-2xl p-4 text-xs font-semibold text-slate-700">
-              Need portal credentials activated for your practice? Email{' '}
+              Need your clinic or partner login password issued? Email{' '}
               <a href="mailto:somesh@glowaiautomation.com" className="text-teal-700 font-extrabold underline">
                 somesh@glowaiautomation.com
               </a>
@@ -245,7 +306,6 @@ export default function PortalWorkspace() {
   if (session.role === 'client') {
     return (
       <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-        {/* Top Workspace Header */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-teal-700 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full">
@@ -261,9 +321,7 @@ export default function PortalWorkspace() {
           </button>
         </div>
 
-        {/* Row 1: Subscription & Billing + Active AI Service Configuration */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Subscription & Payment Card */}
           <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2.5">
@@ -305,7 +363,6 @@ export default function PortalWorkspace() {
               </p>
             </div>
 
-            {/* Recent Invoices */}
             <div className="pt-2 border-t border-slate-100 space-y-2">
               <div className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Billing History</div>
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between text-xs font-semibold">
@@ -320,7 +377,6 @@ export default function PortalWorkspace() {
             </div>
           </div>
 
-          {/* Active Service Details Card */}
           <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2.5">
@@ -370,9 +426,7 @@ export default function PortalWorkspace() {
           </div>
         </div>
 
-        {/* Row 2: Service Modification Application + Priority Customer Support */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Modification Request Form */}
           <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
               <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
@@ -444,7 +498,6 @@ export default function PortalWorkspace() {
             )}
           </div>
 
-          {/* Priority Customer Support */}
           <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4">
               <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700">
@@ -521,7 +574,7 @@ export default function PortalWorkspace() {
   }
 
   // =========================================================================
-  // VIEW 3: PARTNER & AGENT PORTAL (CLIENTS LIST, PAYMENTS, COMMISSIONS)
+  // VIEW 3: PARTNER & AGENT PORTAL
   // =========================================================================
   const partnerClients = [
     {
@@ -546,7 +599,6 @@ export default function PortalWorkspace() {
 
   return (
     <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Top Partner Header */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-teal-700 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full">
@@ -573,7 +625,6 @@ export default function PortalWorkspace() {
         </div>
       </div>
 
-      {/* Partner KPI Summary Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -608,7 +659,6 @@ export default function PortalWorkspace() {
         </div>
       </div>
 
-      {/* Referred Clients & Commission Ledger Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
@@ -658,7 +708,6 @@ export default function PortalWorkspace() {
         </div>
       </div>
 
-      {/* Commission Rules & Payment History */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-6 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/70 border border-teal-200 rounded-3xl p-6 sm:p-8 space-y-3">
           <div className="text-xs font-mono font-bold uppercase tracking-wider text-teal-700 flex items-center gap-1.5">
@@ -670,7 +719,8 @@ export default function PortalWorkspace() {
               <strong className="text-slate-900">Option A — $500 Day-1 Cash Bounty:</strong> Paid immediately once your referred clinic completes their 14-day pilot and pays their first $500 monthly retainer.
             </li>
             <li>
-              <strong className="text-slate-900">Option B ? $50/Month Recurring per active client:</strong> Earn $50/month every billing month for each active referred clinic.</li>
+              <strong className="text-slate-900">Option B — $50/Month Recurring per active client:</strong> Earn $50/month every billing month for each active referred clinic.
+            </li>
           </ul>
         </div>
 
