@@ -520,7 +520,7 @@ export default function PortalWorkspace() {
       contact: 'Emily Carter (Office Mgr)',
       stage: 'Outreach / Demo Scheduled',
       monthlyBill: '$500/mo',
-      commissionModel: 'Option B: $100/mo (Months 1–6)',
+      commissionModel: 'Option B: $50/mo Recurring per active client',
       earned: '$0.00 (In Pipeline)',
       statusColor: 'text-sky-700 bg-sky-50 border-sky-200'
     }
@@ -578,7 +578,7 @@ export default function PortalWorkspace() {
             <CheckCircle2 className="w-4 h-4 text-teal-600" /> Total Commissions Earned
           </div>
           <div className="text-3xl font-extrabold text-emerald-600 font-mono mt-2">$0.00</div>
-          <div className="text-xs font-semibold text-slate-500 mt-1">Up to $500–$600 per converted clinic</div>
+          <div className="text-xs font-semibold text-slate-500 mt-1">$500 Day-1 bounty or $50/mo per active client</div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
@@ -652,8 +652,7 @@ export default function PortalWorkspace() {
               <strong className="text-slate-900">Option A — $500 Day-1 Cash Bounty:</strong> Paid immediately once your referred clinic completes their 14-day pilot and pays their first $500 monthly retainer.
             </li>
             <li>
-              <strong className="text-slate-900">Option B — $100/Month Recurring (Months 1–6):</strong> Earn $100/month across the clinic’s first 6 active billing months ($600 total payout per clinic).
-            </li>
+              <strong className="text-slate-900">Option B ? $50/Month Recurring per active client:</strong> Earn $50/month every billing month for each active referred clinic.</li>
           </ul>
         </div>
 
