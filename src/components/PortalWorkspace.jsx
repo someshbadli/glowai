@@ -60,17 +60,6 @@ const AUTHORIZED_ACCOUNTS = {
 
 export default function PortalWorkspace() {
   const [session, setSession] = useState(() => {
-    if (supabase && session) {
-      await supabase.from('portal_tickets').insert([
-        {
-          clinic_email: session.email,
-          clinic_name: clinicProfile?.clinic_name || session.name,
-          ticket_type: subject.includes('Modification') ? 'modification' : 'support',
-          category: payload.Modification_Category || payload.Subject || 'General',
-          details: payload.Requested_Changes || payload.Message || ''
-        }
-      ]);
-    }
     try {
       const saved = localStorage.getItem('glow_portal_session');
       return saved ? JSON.parse(saved) : null;
@@ -219,6 +208,19 @@ export default function PortalWorkspace() {
     setSending(true);
     const web3Key = import.meta.env.VITE_WEB3FORMS_KEY || 'd24cb467-d97f-4fca-9689-aab1f1ac5344';
     try {
+
+    if (supabase && session) {
+      await supabase.from('portal_tickets').insert([
+        {
+          clinic_email: session.email,
+          clinic_name: clinicProfile?.clinic_name || session.name,
+          ticket_type: subject.includes('Modification') ? 'modification' : 'support',
+          category: payload.Modification_Category || payload.Subject || 'General',
+          details: payload.Requested_Changes || payload.Message || ''
+        }
+      ]);
+    }
+    
       await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
