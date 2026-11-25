@@ -338,7 +338,7 @@ export default function App() {
           </button>
 
           {/* Clean Top Navigation Tabs */}
-          <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 border border-slate-200/80 p-1 rounded-xl text-xs font-semibold">
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 border border-slate-200/80 p-1 rounded-xl text-sm font-bold">
             {[
               { id: 'home', hash: '', label: 'Overview' },
               { id: 'call', hash: 'call-demo', label: 'Call Assistant', icon: PhoneCall },
@@ -367,13 +367,13 @@ export default function App() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => switchTab('call', 'call-demo')}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold bg-white hover:bg-teal-50 text-teal-800 px-3.5 py-2.5 rounded-xl border border-teal-200 transition shadow-2xs"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold bg-white hover:bg-teal-50 text-teal-800 px-3.5 py-2.5 rounded-xl border border-teal-200 transition shadow-2xs"
             >
               <Mic className="w-3.5 h-3.5 text-teal-600" /> Voice Demo
             </button>
             <button
               onClick={() => switchTab('onboard', 'onboard')}
-              className="text-xs font-bold bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl transition shadow-md shadow-teal-600/20"
+              className="text-sm font-extrabold bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl transition shadow-md shadow-teal-600/20"
             >
               Start 14-Day Pilot
             </button>
@@ -381,7 +381,7 @@ export default function App() {
         </div>
 
         {/* Mobile Tab Bar */}
-        <div className="flex lg:hidden overflow-x-auto gap-1.5 px-4 py-2 border-t border-slate-100 bg-white/90 text-xs font-semibold">
+        <div className="flex lg:hidden overflow-x-auto gap-1.5 px-4 py-2 border-t border-slate-100 bg-white/90 text-sm font-bold">
           {[
             { id: 'home', hash: '', label: 'Overview' },
             { id: 'call', hash: 'call-demo', label: 'Call Assistant' },
@@ -426,7 +426,7 @@ export default function App() {
                       </span>
                     </h1>
 
-                    <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+                    <p className="text-slate-800 font-medium text-lg sm:text-xl leading-relaxed max-w-2xl">
                       Outpatient practices lose 25%–35% of inbound patient calls during busy front-desk check-ins, lunch hours, and after 5:00 PM. Glow AI answers on the first ring, enforces strict clinic scheduling rules, and syncs directly to your calendar—with zero software installed on clinic computers.
                     </p>
 
@@ -448,15 +448,15 @@ export default function App() {
                     <div className="grid grid-cols-3 gap-4 pt-5 border-t border-slate-200/80 max-w-xl">
                       <div className="bg-white/75 backdrop-blur border border-slate-200/70 rounded-2xl p-3">
                         <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono">&lt; 1 Sec</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">First-Ring Answer Speed</div>
+                        <div className="text-sm font-bold text-slate-600 mt-0.5">First-Ring Answer Speed</div>
                       </div>
                       <div className="bg-white/75 backdrop-blur border border-slate-200/70 rounded-2xl p-3">
                         <div className="text-xl sm:text-2xl font-extrabold text-teal-600 font-mono">48 Hrs</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">Turnkey Clinic Setup</div>
+                        <div className="text-sm font-bold text-slate-600 mt-0.5">Turnkey Clinic Setup</div>
                       </div>
                       <div className="bg-white/75 backdrop-blur border border-slate-200/70 rounded-2xl p-3">
                         <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono">$0 Risk</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">14-Day Free Clinical Pilot</div>
+                        <div className="text-sm font-bold text-slate-600 mt-0.5">14-Day Free Clinical Pilot</div>
                       </div>
                     </div>
                   </div>
@@ -470,7 +470,7 @@ export default function App() {
                             S
                           </div>
                           <div>
-                            <div className="text-sm font-bold text-slate-900">Savannah • AI Front Desk</div>
+                            <div className="text-base font-extrabold text-slate-900">Savannah • AI Front Desk</div>
                             <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Voice & Web Engine
                             </div>
@@ -505,13 +505,13 @@ export default function App() {
                       <div className="grid grid-cols-2 gap-2.5 pt-1">
                         <button
                           onClick={() => switchTab('call', 'call-demo')}
-                          className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold py-3 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
+                          className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-sm font-extrabold py-3 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
                         >
                           <PhoneCall className="w-3.5 h-3.5" /> Call Assistant
                         </button>
                         <button
                           onClick={() => switchTab('chat', 'chat-demo')}
-                          className="bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold py-3 px-3 rounded-xl transition flex items-center justify-center gap-1.5"
+                          className="bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 text-sm font-extrabold py-3 px-3 rounded-xl transition flex items-center justify-center gap-1.5"
                         >
                           <MessageSquare className="w-3.5 h-3.5 text-teal-700" /> Chat Assistant
                         </button>
@@ -537,7 +537,7 @@ export default function App() {
                     ].map((tool) => (
                       <span
                         key={tool}
-                        className="text-xs font-semibold text-slate-700 bg-white/90 backdrop-blur border border-slate-200/90 px-4 py-2 rounded-full shadow-2xs hover:border-teal-300 transition"
+                        className="text-sm font-bold text-slate-800 bg-white/90 backdrop-blur border border-slate-200/90 px-4 py-2 rounded-full shadow-2xs hover:border-teal-300 transition"
                       >
                         {tool}
                       </span>
@@ -557,7 +557,7 @@ export default function App() {
                   <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                     Live in 48 Hours Without Changing Your Phone Number
                   </h2>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-base font-medium text-slate-700">
                     No new hardware, no desktop software installation, and zero disruption to your front-desk staff.
                   </p>
                 </div>
@@ -593,8 +593,8 @@ export default function App() {
                         </div>
                         <span className="text-xs font-mono font-bold text-slate-400">{item.step}</span>
                       </div>
-                      <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                      <h3 className="text-lg font-extrabold text-slate-900">{item.title}</h3>
+                      <p className="text-[15px] font-medium text-slate-700 leading-relaxed">{item.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -618,8 +618,8 @@ export default function App() {
                     <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
                       <Stethoscope className="w-5 h-5" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">Private Outpatient Clinics</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    <h3 className="text-lg font-extrabold text-slate-900">Private Outpatient Clinics</h3>
+                    <p className="text-[15px] font-medium text-slate-700 leading-relaxed">
                       Captures overflow calls during lunch and post-close while enforcing strict Monday–Friday appointment windows and logging confirmed slots to staff calendars.
                     </p>
                   </div>
@@ -628,8 +628,8 @@ export default function App() {
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
                       <Building2 className="w-5 h-5" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">Specialty & Dental Practices</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    <h3 className="text-lg font-extrabold text-slate-900">Specialty & Dental Practices</h3>
+                    <p className="text-[15px] font-medium text-slate-700 leading-relaxed">
                       Eliminates voicemail drop-off for high-value new patient exams, routes urgent clinical callbacks to on-call staff, and frees front-desk coordinators to focus on in-clinic patients.
                     </p>
                   </div>
@@ -638,8 +638,8 @@ export default function App() {
                     <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
                       <Sparkle className="w-5 h-5" />
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">Medical Spas & Aesthetic Centers</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    <h3 className="text-lg font-extrabold text-slate-900">Medical Spas & Aesthetic Centers</h3>
+                    <p className="text-[15px] font-medium text-slate-700 leading-relaxed">
                       Books Botox, filler, laser, and Morpheus8 consultations 24/7 while strictly deferring all medical contraindication questions to your licensed providers.
                     </p>
                   </div>
@@ -651,8 +651,8 @@ export default function App() {
                       <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">Strict Non-Diagnostic Boundary</h4>
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      <h4 className="text-base font-extrabold text-slate-900">Strict Non-Diagnostic Boundary</h4>
+                      <p className="text-[15px] font-medium text-slate-700 mt-1 leading-relaxed">
                         Glow AI never gives medical advice, diagnoses symptoms, or evaluates contraindications—every clinical question is politely deferred to your physician during the consultation.
                       </p>
                     </div>
@@ -663,8 +663,8 @@ export default function App() {
                       <Lock className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">Clean Administrative Separation</h4>
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      <h4 className="text-base font-extrabold text-slate-900">Clean Administrative Separation</h4>
+                      <p className="text-[15px] font-medium text-slate-700 mt-1 leading-relaxed">
                         Intake is locked to standard scheduling fields (Name, Callback Phone, Email, Visit Reason) without requiring invasive EHR write-access or clinic PC software.
                       </p>
                     </div>
@@ -684,7 +684,7 @@ export default function App() {
                     <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                       Try Glow AI Free For 14 Days in Your Clinic
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    <p className="text-[15px] font-medium text-slate-700 leading-relaxed">
                       If our AI Receptionist does not capture qualified patient bookings during your 14-day pilot, you pay $0. Post-pilot flat retainer is just <strong className="text-slate-900">$500/month</strong> with no long-term lock-in.
                     </p>
                   </div>
@@ -733,7 +733,7 @@ export default function App() {
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
                   Call Our Live Demo Line Right Now
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <p className="text-[15px] font-medium text-slate-700 leading-relaxed">
                   Dial from your mobile or office phone and try booking a consultation, asking for a Saturday appointment, or asking a clinical question to hear how Savannah responds in real time.
                 </p>
                 <div className="pt-1 flex flex-wrap items-center gap-4">
@@ -800,7 +800,7 @@ export default function App() {
                       <span className="text-[10px] font-mono font-bold uppercase text-teal-700">Scenario 0{idx + 1}</span>
                       <Play className={`w-3.5 h-3.5 ${activeVoiceScenario === idx ? 'text-teal-600' : 'text-slate-400'}`} />
                     </div>
-                    <div className="text-xs font-bold text-slate-900">{sc.title}</div>
+                    <div className="text-sm font-extrabold text-slate-900">{sc.title}</div>
                   </button>
                 ))}
               </div>
@@ -846,7 +846,7 @@ export default function App() {
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
                 Interactive Web Receptionist Simulator
               </h1>
-              <p className="text-sm text-slate-600">
+              <p className="text-base font-medium text-slate-700">
                 Test how our web & SMS assistant enforces Monday–Friday 9 AM–5 PM operating boundaries, deflects clinical questions, and syncs verified 4-point patient intakes to your calendar.
               </p>
             </div>
@@ -856,7 +856,7 @@ export default function App() {
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
                       <Bot className="w-4 h-4 text-teal-600" /> Web Receptionist Simulator
                     </span>
                   </div>
@@ -915,7 +915,7 @@ export default function App() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center transition"
+                    className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-extrabold flex items-center justify-center transition"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
@@ -925,7 +925,7 @@ export default function App() {
               <div className="lg:col-span-6 space-y-4">
                 <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-3xl p-5 space-y-4 shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <span className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
                       <Database className="w-4 h-4 text-teal-600" /> Live 4-Point Administrative Intake
                     </span>
                     <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
@@ -936,7 +936,7 @@ export default function App() {
                   <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl flex items-center justify-between">
                     <div>
                       <div className="text-[10px] text-slate-400 uppercase font-mono">Current Pipeline Stage</div>
-                      <div className="text-xs font-bold text-teal-700 mt-0.5">{leadStage}</div>
+                      <div className="text-sm font-extrabold text-teal-700 mt-0.5">{leadStage}</div>
                     </div>
                     <CheckCircle2 className="w-5 h-5 text-teal-600" />
                   </div>
@@ -1018,17 +1018,17 @@ export default function App() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
                 <div className="text-3xl font-extrabold text-teal-600 font-mono">350,000+</div>
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">US Outpatient & Dental Clinics</div>
+                <div className="text-sm font-extrabold uppercase tracking-wider text-slate-800 mt-1">US Outpatient & Dental Clinics</div>
                 <p className="text-xs text-slate-500 mt-1">High front-desk call volume with chronic staffing bottlenecks</p>
               </div>
               <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
                 <div className="text-3xl font-extrabold text-slate-900 font-mono">$4,500+/mo</div>
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">Avg. Clinic Missed-Call Leakage</div>
+                <div className="text-sm font-extrabold uppercase tracking-wider text-slate-800 mt-1">Avg. Clinic Missed-Call Leakage</div>
                 <p className="text-xs text-slate-500 mt-1">Just 3 missed new-patient calls/week costs thousands monthly</p>
               </div>
               <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
                 <div className="text-3xl font-extrabold text-emerald-600 font-mono">14-Day Pilot</div>
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">Zero-Friction Clinic Close</div>
+                <div className="text-sm font-extrabold uppercase tracking-wider text-slate-800 mt-1">Zero-Friction Clinic Close</div>
                 <p className="text-xs text-slate-500 mt-1">Practices verify real recovered bookings before paying $500/mo</p>
               </div>
             </div>
@@ -1070,8 +1070,8 @@ export default function App() {
                   <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
                     <card.icon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900">{card.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">{card.desc}</p>
+                  <h3 className="text-base font-extrabold text-slate-900">{card.title}</h3>
+                  <p className="text-[15px] font-medium text-slate-700 leading-relaxed">{card.desc}</p>
                 </div>
               ))}
             </div>
@@ -1079,7 +1079,7 @@ export default function App() {
             <div className="bg-gradient-to-r from-teal-50/95 via-white to-sky-50/90 border border-teal-200 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md shadow-teal-900/5">
               <div className="space-y-1.5 text-center sm:text-left">
                 <h3 className="text-xl font-bold text-slate-900">Have a Practice Ready for a 14-Day Pilot?</h3>
-                <p className="text-xs text-slate-600">
+                <p className="text-[15px] font-medium text-slate-700">
                   Submit their clinic profile directly through our onboarding portal with your Partner Name, or connect with our founder desk.
                 </p>
               </div>
@@ -1113,7 +1113,7 @@ export default function App() {
               <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
                 The 14-Day Free Clinical Pilot
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-[15px] font-medium text-slate-700 max-w-2xl mx-auto leading-relaxed">
                 Deploy Glow AI across your clinic phone overflow and after-hours lines for 14 days. If we do not capture qualified patient bookings for your practice, you pay nothing. Post-pilot flat retainer is just <strong className="text-slate-900">$500/month</strong> with no long-term lock-in.
               </p>
             </div>
@@ -1167,7 +1167,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="border-t border-slate-200/80 py-5 px-4 text-center text-[11px] text-slate-500">
+        <div className="border-t border-slate-200/80 py-5 px-4 text-center text-sm font-bold text-slate-600">
           © 2026 Glow AI Automation. All rights reserved. Non-Diagnostic Administrative Scheduling Infrastructure.
         </div>
       </footer>
