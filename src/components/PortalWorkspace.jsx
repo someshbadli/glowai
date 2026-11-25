@@ -33,7 +33,7 @@ export default function PortalWorkspace() {
   const [loginEmail, setLoginEmail] = useState('');
 
   const updateSession = (nextSession) => {
-    updateSession(nextSession);
+    setSession(nextSession);
     try {
       if (nextSession) {
         localStorage.setItem('glow_portal_session', JSON.stringify(nextSession));
