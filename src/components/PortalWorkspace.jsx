@@ -22,8 +22,26 @@ import {
 } from 'lucide-react';
 
 export default function PortalWorkspace() {
-  const [session, setSession] = useState(null); // { role: 'client' | 'partner', email: string, name: string, code?: string }
+  const [session, setSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('glow_portal_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loginEmail, setLoginEmail] = useState('');
+
+  const updateSession = (nextSession) => {
+    updateSession(nextSession);
+    try {
+      if (nextSession) {
+        localStorage.setItem('glow_portal_session', JSON.stringify(nextSession));
+      } else {
+        localStorage.removeItem('glow_portal_session');
+      }
+    } catch {}
+  };
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Client Modification & Support Form States
@@ -55,14 +73,14 @@ export default function PortalWorkspace() {
       cleanEmail.endsWith('@glowaiautomation.com')
     ) {
       const isVikas = cleanEmail.includes('vikas');
-      setSession({
+      updateSession({
         role: 'partner',
         email: cleanEmail,
         name: isVikas ? 'Vikas (Channel Partner)' : 'Dr. Vijay (Clinical Advisor)',
         code: isVikas ? 'VIKAS' : 'VIJAY'
       });
     } else {
-      setSession({
+      updateSession({
         role: 'client',
         email: cleanEmail,
         name: 'Richmond Aesthetic & Outpatient Center'
@@ -72,14 +90,14 @@ export default function PortalWorkspace() {
 
   const quickDemoLogin = (role) => {
     if (role === 'partner') {
-      setSession({
+      updateSession({
         role: 'partner',
         email: 'mrvr@glowaiautomation.com',
         name: 'Dr. Vijay (Clinical Partner)',
         code: 'VIJAY'
       });
     } else {
-      setSession({
+      updateSession({
         role: 'client',
         email: 'frontdesk@richmondclinic.com',
         name: 'Richmond Aesthetic & Outpatient Center'
@@ -236,7 +254,7 @@ export default function PortalWorkspace() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{session.name}</h1>
           </div>
           <button
-            onClick={() => setSession(null)}
+            onClick={() => updateSession(null)}
             className="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl transition self-start sm:self-auto"
           >
             <LogOut className="w-3.5 h-3.5" /> Sign Out
@@ -547,7 +565,7 @@ export default function PortalWorkspace() {
             {copiedLink ? 'Copied Referral Onboarding Link!' : `Copy Clinic Onboarding Link (?ref=${session.code})`}
           </button>
           <button
-            onClick={() => setSession(null)}
+            onClick={() => updateSession(null)}
             className="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl transition"
           >
             <LogOut className="w-3.5 h-3.5" /> Sign Out
