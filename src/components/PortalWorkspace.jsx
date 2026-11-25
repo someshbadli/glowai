@@ -154,6 +154,12 @@ export default function PortalWorkspace() {
   const wiseCadPaymentUrl =
     import.meta.env.VITE_WISE_CAD_PAYMENT_LINK ||
     'https://wise.com/pay/r/7zdQFQgljjpgnZc';
+  const wiseAnnualUsdUrl =
+    import.meta.env.VITE_WISE_ANNUAL_USD_LINK ||
+    'https://wise.com/pay/r/cIPAyTp9uNZX2RM';
+  const wiseAnnualCadUrl =
+    import.meta.env.VITE_WISE_ANNUAL_CAD_LINK ||
+    'https://wise.com/pay/r/wx924QcG2oF-N4Q';
 
   const handleLogin = (e) => {
     e.preventDefault();
