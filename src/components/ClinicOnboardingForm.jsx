@@ -29,9 +29,14 @@ export default function ClinicOnboardingForm() {
       const searchQuery = window.location.search.replace(/^\?/, '');
       const params = new URLSearchParams(hashQuery || searchQuery);
       const ref = params.get('ref');
-      if (ref) {
-        setFormData((prev) => ({ ...prev, partnerCode: ref.toUpperCase() }));
-      }
+      const countryParam = params.get('country');
+      setFormData((prev) => ({
+        ...prev,
+        ...(ref ? { partnerCode: ref.toUpperCase() } : {}),
+        ...(countryParam && ['US', 'USA', 'CA', 'CANADA'].includes(countryParam.toUpperCase())
+          ? { country: countryParam.toUpperCase().startsWith('CA') ? 'Canada' : 'USA' }
+          : {})
+      }));
     } catch {}
   }, []);
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +45,7 @@ export default function ClinicOnboardingForm() {
   const [selectedServices, setSelectedServices] = useState(['New Patient Consultations', 'Follow-Up Visits']);
 
   const [formData, setFormData] = useState({
+    country: 'USA',
     clinicName: '',
     contactName: '',
     contactTitle: 'Practice Manager / Owner',
@@ -94,7 +100,8 @@ export default function ClinicOnboardingForm() {
     ].join(', ');
 
     const payload = {
-      Clinic_Name: formData.clinicName,
+      Country_Region: formData.country === 'Canada' ? 'Canada ($650 CAD/mo)' : 'USA ($500 USD/mo)',
+            Clinic_Name: formData.clinicName,
       Contact_Name: `${formData.contactName} (${formData.contactTitle})`,
       Work_Email: formData.email,
       Direct_Phone: formData.phone,
@@ -127,6 +134,9 @@ export default function ClinicOnboardingForm() {
           lunch_overflow: formData.lunchBreak,
           calendar_system: formData.calendarPlatform,
           services_offered: allServices || 'General Consultations',
+          country: formData.country || 'USA',
+          currency: formData.country === 'Canada' ? 'CAD' : 'USD',
+          monthly_rate: formData.country === 'Canada' ? 650 : 500,
           partner_code: (formData.partnerCode || 'DIRECT').trim().toUpperCase(),
           pipeline_stage: '14-Day Pilot Active'
         }

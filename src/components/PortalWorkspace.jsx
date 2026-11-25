@@ -48,7 +48,20 @@ const AUTHORIZED_ACCOUNTS = {
   'frontdesk@richmondclinic.com': {
     password: 'GlowClinic2026!',
     role: 'client',
+    country: 'USA',
     name: 'Richmond Aesthetic & Outpatient Center'
+  },
+  'frontdesk@torontoclinic.ca': {
+    password: 'GlowClinic2026!',
+    role: 'client',
+    country: 'Canada',
+    name: 'Yorkville Medical & Aesthetic Clinic (Toronto)'
+  },
+  'canada@glowaiautomation.com': {
+    password: 'GlowCanada2026!',
+    role: 'partner',
+    name: 'Canada Clinical Growth Desk',
+    code: 'CANADA'
   }
 };
 
@@ -135,9 +148,12 @@ export default function PortalWorkspace() {
     } catch {}
   };
 
-  const wisePaymentUrl =
+  const wiseUsdPaymentUrl =
     import.meta.env.VITE_WISE_PAYMENT_LINK ||
-    'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20%24500%20Monthly%20Subscription%20Invoice%20Request';
+    'https://wise.com/pay/r/6ZCXMQKoAmt7uVA';
+  const wiseCadPaymentUrl =
+    import.meta.env.VITE_WISE_CAD_PAYMENT_LINK ||
+    'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20Canada%20%24650%20CAD%20Subscription%20%2F%20Interac%20Invoice';
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -182,6 +198,7 @@ export default function PortalWorkspace() {
       updateSession({
         role: 'client',
         email: cleanEmail,
+        country: cleanEmail.endsWith('.ca') ? 'Canada' : 'USA',
         name: formattedName
       });
       setLoginPassword('');
@@ -469,7 +486,7 @@ export default function PortalWorkspace() {
                 <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-teal-600" /> Clinical Safety Guardrail
                 </div>
-                <div className="font-bold text-emerald-700 mt-1">Non-Diagnostic Deflection Active</div>
+                <div className="font-bold text-emerald-700 mt-1">USA & Canada Non-Diagnostic Guardrail (PIPEDA/PHIPA Aligned)</div>
               </div>
             </div>
 
@@ -668,10 +685,19 @@ export default function PortalWorkspace() {
           <p className="text-xs sm:text-sm font-medium text-slate-700">
             Send this link to clinic owners or practice managers. Any 14-day pilot submitted through this link is automatically credited to your account.
           </p>
-          <div className="pt-1.5">
-            <code className="inline-block bg-white border border-teal-200 text-teal-900 font-mono text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl select-all">
-              {`https://glowaiautomation.com/#onboard?ref=${session.code}`}
-            </code>
+          <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="bg-white border border-teal-200 rounded-xl p-2.5">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-teal-700 mb-1">USA Clinics ($500 USD/mo)</div>
+              <code className="block text-slate-900 font-mono text-xs font-bold break-all select-all">
+                {`https://glowaiautomation.com/#onboard?ref=${session.code}&country=US`}
+              </code>
+            </div>
+            <div className="bg-white border border-teal-200 rounded-xl p-2.5">
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 mb-1">Canada Clinics ($650 CAD/mo)</div>
+              <code className="block text-slate-900 font-mono text-xs font-bold break-all select-all">
+                {`https://glowaiautomation.com/#onboard?ref=${session.code}&country=CA`}
+              </code>
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
