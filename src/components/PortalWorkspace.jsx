@@ -643,8 +643,8 @@ export default function PortalWorkspace() {
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <Users className="w-4 h-4 text-teal-600" /> Referred Clinics
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">2</div>
-          <div className="text-xs font-semibold text-slate-500 mt-1">1 Active Pilot • 1 Demo Scheduled</div>
+          <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">0</div>
+          <div className="text-xs font-semibold text-slate-500 mt-1">0 Active Pilots ? 0 Demos Scheduled</div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
