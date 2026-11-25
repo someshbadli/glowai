@@ -380,6 +380,7 @@ export default function PortalWorkspace() {
   // VIEW 2: CLINIC CLIENT PORTAL
   // =========================================================================
   if (session.role === 'client') {
+    const isCanada = (clinicProfile?.country || session.country || (session.email?.endsWith('.ca') ? 'Canada' : 'USA')) === 'Canada';
     return (
       <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -416,8 +417,8 @@ export default function PortalWorkspace() {
 
             <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
               <div>
-                <div className="text-xs font-semibold text-slate-500">Monthly Plan Rate</div>
-                <div className="text-2xl font-extrabold text-slate-900 font-mono mt-0.5">$500.00<span className="text-xs font-sans font-semibold text-slate-500">/mo</span></div>
+                <div className="text-xs font-semibold text-slate-500">Monthly Plan Rate ({isCanada ? 'Canada' : 'USA'})</div>
+                <div className="text-2xl font-extrabold text-slate-900 font-mono mt-0.5">{isCanada ? '$650.00 CAD' : '$500.00 USD'}<span className="text-xs font-sans font-semibold text-slate-500">/mo</span></div>
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-500">Pilot Guarantee Status</div>
@@ -427,12 +428,12 @@ export default function PortalWorkspace() {
 
             <div className="space-y-2.5">
               <a
-                href={wiseUsdPaymentUrl}
+                href={isCanada ? wiseCadPaymentUrl : wiseUsdPaymentUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3.5 px-5 rounded-xl text-sm transition shadow-md shadow-teal-600/20 flex items-center justify-center gap-2"
               >
-                Pay $500.00 Monthly Subscription (US ACH / Card) <ArrowUpRight className="w-4 h-4" />
+                {isCanada ? 'Pay $650.00 CAD Monthly Subscription (Canadian Interac / EFT / Card)' : 'Pay $500.00 USD Monthly Subscription (US ACH / Card)'} <ArrowUpRight className="w-4 h-4" />
               </a>
               <a
                       href={isCanada ? wiseAnnualCadUrl : wiseAnnualUsdUrl}
@@ -443,7 +444,7 @@ export default function PortalWorkspace() {
                       Annual Offer: {isCanada ? '$6,500.00 CAD/yr (Save $1,300)' : '$5,000.00 USD/yr (Save $1,000)'} ? 2 Months Free <ArrowUpRight className="w-4 h-4 text-emerald-400" />
                     </a>
                     <p className="text-xs font-medium text-slate-500 text-center">
-                Processed securely via Wise Business USD • Instant receipt &amp; invoice emailed to {session.email}
+                Processed securely via Wise Business {isCanada ? 'CAD' : 'USD'} • Instant receipt &amp; invoice emailed to {session.email}
               </p>
             </div>
 
