@@ -153,7 +153,13 @@ export default function PortalWorkspace() {
     'https://wise.com/pay/r/6ZCXMQKoAmt7uVA';
   const wiseCadPaymentUrl =
     import.meta.env.VITE_WISE_CAD_PAYMENT_LINK ||
-    'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20Canada%20%24650%20CAD%20Subscription%20%2F%20Interac%20Invoice';
+    'https://wise.com/pay/r/7zdQFQgljjpgnZc';
+  const wiseAnnualUsdUrl =
+    import.meta.env.VITE_WISE_ANNUAL_USD_LINK ||
+    'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20Annual%20Plan%20(%245%2C000%20USD%20-%202%20Months%20Free)';
+  const wiseAnnualCadUrl =
+    import.meta.env.VITE_WISE_ANNUAL_CAD_LINK ||
+    'mailto:somesh@glowaiautomation.com?subject=Glow%20AI%20Canada%20Annual%20Plan%20(%246%2C500%20CAD%20-%202%20Months%20Free)';
 
   const handleLogin = (e) => {
     e.preventDefault();
