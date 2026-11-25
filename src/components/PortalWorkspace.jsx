@@ -39,12 +39,6 @@ const AUTHORIZED_ACCOUNTS = {
     name: 'Vikas (Channel Partner)',
     code: 'VIKAS'
   },
-  'subbu@glowaiautomation.com': {
-    password: 'GlowSubbu2026!',
-    role: 'partner',
-    name: 'Subbu Sir (Channel Partner)',
-    code: 'SUBBU'
-  },
   'somesh@glowaiautomation.com': {
     password: 'GlowAdmin2026!',
     role: 'partner',
