@@ -434,7 +434,15 @@ export default function PortalWorkspace() {
               >
                 Pay $500.00 Monthly Subscription (US ACH / Card) <ArrowUpRight className="w-4 h-4" />
               </a>
-              <p className="text-xs font-medium text-slate-500 text-center">
+              <a
+                      href={isCanada ? wiseAnnualCadUrl : wiseAnnualUsdUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3 px-5 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2"
+                    >
+                      Annual Offer: {isCanada ? '$6,500.00 CAD/yr (Save $1,300)' : '$5,000.00 USD/yr (Save $1,000)'} ? 2 Months Free <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                    </a>
+                    <p className="text-xs font-medium text-slate-500 text-center">
                 Processed securely via Wise Business USD • Instant receipt &amp; invoice emailed to {session.email}
               </p>
             </div>
