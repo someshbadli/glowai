@@ -427,7 +427,7 @@ export default function PortalWorkspace() {
 
             <div className="space-y-2.5">
               <a
-                href={wisePaymentUrl}
+                href={wiseUsdPaymentUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3.5 px-5 rounded-xl text-sm transition shadow-md shadow-teal-600/20 flex items-center justify-center gap-2"
