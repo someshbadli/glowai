@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { CheckCircle2, PhoneCall, Calendar, Building2, Clock, Stethoscope, ArrowRight, Loader2 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -21,6 +21,18 @@ const COMMON_SERVICES = [
 
 export default function ClinicOnboardingForm() {
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    try {
+      const hashQuery = window.location.hash.split('?')[1] || '';
+      const searchQuery = window.location.search.replace(/^\?/, '');
+      const params = new URLSearchParams(hashQuery || searchQuery);
+      const ref = params.get('ref');
+      if (ref) {
+        setFormData((prev) => ({ ...prev, partnerCode: ref.toUpperCase() }));
+      }
+    } catch {}
+  }, []);
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedDays, setSelectedDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);

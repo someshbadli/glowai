@@ -576,26 +576,7 @@ export default function PortalWorkspace() {
   // =========================================================================
   // VIEW 3: PARTNER & AGENT PORTAL
   // =========================================================================
-  const partnerClients = [
-    {
-      clinic: 'Richmond Aesthetic & Laser Center',
-      contact: 'Dr. Sarah Jenkins',
-      stage: '14-Day Pilot Active',
-      monthlyBill: '$500/mo (Starts Day 15)',
-      commissionModel: 'Option A: $500 Day-1 Bounty',
-      earned: '$0.00 (Pending Conversion)',
-      statusColor: 'text-amber-700 bg-amber-50 border-amber-200'
-    },
-    {
-      clinic: 'West End Dental & Implant Studio',
-      contact: 'Emily Carter (Office Mgr)',
-      stage: 'Outreach / Demo Scheduled',
-      monthlyBill: '$500/mo',
-      commissionModel: 'Option B: $50/mo Recurring per active client',
-      earned: '$0.00 (In Pipeline)',
-      statusColor: 'text-sky-700 bg-sky-50 border-sky-200'
-    }
-  ];
+  const partnerClients = [];
 
   return (
     <div id="portal" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -625,6 +606,38 @@ export default function PortalWorkspace() {
         </div>
       </div>
 
+      {/* Dedicated Shareable Referral Link Box */}
+      <div className="bg-gradient-to-r from-teal-50 via-white to-emerald-50 border border-teal-200 rounded-3xl p-6 sm:p-7 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="text-xs font-mono font-bold uppercase tracking-wider text-teal-700">
+            Your Dedicated Clinic Referral Link (Auto-Tags Partner Code {session.code})
+          </div>
+          <p className="text-xs sm:text-sm font-medium text-slate-700">
+            Send this link to clinic owners or practice managers. Any 14-day pilot submitted through this link is automatically credited to your account.
+          </p>
+          <div className="pt-1.5">
+            <code className="inline-block bg-white border border-teal-200 text-teal-900 font-mono text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl select-all">
+              {`https://glowaiautomation.com/#onboard?ref=${session.code}`}
+            </code>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            onClick={handleCopyReferral}
+            className="inline-flex items-center gap-2 text-xs font-extrabold bg-teal-600 hover:bg-teal-700 text-white px-4 py-3 rounded-xl transition shadow-sm"
+          >
+            {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copiedLink ? 'Referral Link Copied!' : 'Copy Referral Link'}
+          </button>
+          <a
+            href={`mailto:?subject=${encodeURIComponent('14-Day Free AI Receptionist Pilot ? Glow AI Automation')}&body=${encodeURIComponent(`Hi,\n\nYou can activate your 14-day zero-risk AI receptionist pilot here (takes 2 minutes):\nhttps://glowaiautomation.com/#onboard?ref=${session.code}\n\nYou can also call the 24/7 live demo line anytime at +1 (804) 259-1091.\n\nBest regards,\n${session.name}`)}`}
+            className="inline-flex items-center gap-2 text-xs font-extrabold bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-3 rounded-xl transition"
+          >
+            Share via Email <ArrowUpRight className="w-4 h-4 text-teal-600" />
+          </a>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -639,7 +652,7 @@ export default function PortalWorkspace() {
             <DollarSign className="w-4 h-4 text-emerald-600" /> Active Client MRR
           </div>
           <div className="text-3xl font-extrabold text-slate-900 font-mono mt-2">$0.00</div>
-          <div className="text-xs font-semibold text-teal-700 mt-1">$1,000/mo Pending Pilot Conversions</div>
+          <div className="text-xs font-semibold text-teal-700 mt-1">$0.00 Pending Pilot Conversions</div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
@@ -687,22 +700,30 @@ export default function PortalWorkspace() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-              {partnerClients.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/70">
-                  <td className="py-4 pr-4">
-                    <div className="font-extrabold text-slate-900">{row.clinic}</div>
-                    <div className="text-xs text-slate-500">{row.contact}</div>
+              {partnerClients.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-sm font-medium text-slate-500">
+                    No referred clinics logged yet under <span className="font-mono font-bold text-teal-700">{session.code}</span>. Share your referral link above or click <strong className="text-slate-800">+ Submit New Clinic Lead</strong> to register a practice.
                   </td>
-                  <td className="py-4 px-4">
-                    <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${row.statusColor}`}>
-                      {row.stage}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 font-mono text-xs font-bold">{row.monthlyBill}</td>
-                  <td className="py-4 px-4 text-xs font-semibold text-slate-700">{row.commissionModel}</td>
-                  <td className="py-4 pl-4 text-right font-mono text-xs font-extrabold text-slate-900">{row.earned}</td>
                 </tr>
-              ))}
+              ) : (
+                partnerClients.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/70">
+                    <td className="py-4 pr-4">
+                      <div className="font-extrabold text-slate-900">{row.clinic}</div>
+                      <div className="text-xs text-slate-500">{row.contact}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${row.statusColor}`}>
+                        {row.stage}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-xs font-bold">{row.monthlyBill}</td>
+                    <td className="py-4 px-4 text-xs font-semibold text-slate-700">{row.commissionModel}</td>
+                    <td className="py-4 pl-4 text-right font-mono text-xs font-extrabold text-slate-900">{row.earned}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
