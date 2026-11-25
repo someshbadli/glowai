@@ -296,25 +296,32 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-teal-600 selection:text-white flex flex-col">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-teal-600 selection:text-white flex flex-col relative overflow-x-hidden">
+      {/* Global Ambient Animated Aurora Background */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-teal-200/45 via-emerald-200/35 to-cyan-200/40 blur-3xl animate-aurora-slow" />
+        <div className="absolute top-1/3 -right-32 w-[560px] h-[560px] rounded-full bg-gradient-to-bl from-sky-200/45 via-teal-100/40 to-emerald-200/35 blur-3xl animate-aurora-reverse" />
+        <div className="absolute -bottom-32 left-1/4 w-[480px] h-[480px] rounded-full bg-gradient-to-tr from-emerald-100/50 via-teal-100/40 to-sky-100/50 blur-3xl animate-aurora-slow" />
+      </div>
+
       {/* Light Mint Announcement Ribbon */}
-      <div className="bg-gradient-to-r from-teal-50 via-emerald-50/70 to-sky-50 border-b border-teal-100 px-4 py-2 text-center text-xs tracking-wide flex flex-wrap items-center justify-center gap-3">
+      <div className="relative z-10 bg-white/80 backdrop-blur-md border-b border-teal-100/90 px-4 py-2 text-center text-xs tracking-wide flex flex-wrap items-center justify-center gap-3">
         <span className="text-slate-700 font-medium">
-          <span className="font-mono font-bold uppercase tracking-wider bg-white text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded-full mr-2 shadow-2xs">
+          <span className="font-mono font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded-full mr-2">
             US Healthcare AI
           </span>
           Zero-Hold 24/7 Voice & Web Reception for Outpatient Clinics & MedSpas
         </span>
         <a
           href="tel:+18042591091"
-          className="inline-flex items-center gap-1.5 font-mono font-bold text-teal-800 hover:text-teal-950 bg-white border border-teal-200 px-3 py-0.5 rounded-full shadow-2xs transition"
+          className="inline-flex items-center gap-1.5 font-mono font-bold text-teal-800 hover:text-teal-950 bg-teal-50/80 border border-teal-200 px-3 py-0.5 rounded-full transition"
         >
           <PhoneCall className="w-3 h-3 text-teal-600" /> Live Demo: +1 (804) 259-1091
         </a>
       </div>
 
-      {/* Crisp Light Navigation Header */}
-      <header className="border-b border-slate-200/80 bg-white/95 backdrop-blur sticky top-0 z-50">
+      {/* Crisp Frosted Navigation Header */}
+      <header className="relative z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <button onClick={() => switchTab('home', '')} className="flex items-center gap-3 text-left">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-md shadow-teal-600/20">
@@ -360,7 +367,7 @@ export default function App() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => switchTab('call', 'call-demo')}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold bg-teal-50 hover:bg-teal-100 text-teal-800 px-3.5 py-2.5 rounded-xl border border-teal-200 transition"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold bg-white hover:bg-teal-50 text-teal-800 px-3.5 py-2.5 rounded-xl border border-teal-200 transition shadow-2xs"
             >
               <Mic className="w-3.5 h-3.5 text-teal-600" /> Voice Demo
             </button>
@@ -374,7 +381,7 @@ export default function App() {
         </div>
 
         {/* Mobile Tab Bar */}
-        <div className="flex lg:hidden overflow-x-auto gap-1.5 px-4 py-2 border-t border-slate-100 bg-slate-50 text-xs font-semibold">
+        <div className="flex lg:hidden overflow-x-auto gap-1.5 px-4 py-2 border-t border-slate-100 bg-white/90 text-xs font-semibold">
           {[
             { id: 'home', hash: '', label: 'Overview' },
             { id: 'call', hash: 'call-demo', label: 'Call Assistant' },
@@ -388,7 +395,7 @@ export default function App() {
               className={`px-3 py-1.5 rounded-lg whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-teal-600 text-white'
-                  : 'text-slate-600 bg-white border border-slate-200'
+                  : 'text-slate-600 bg-slate-50 border border-slate-200'
               }`}
             >
               {tab.label}
@@ -397,24 +404,24 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="relative z-10 flex-1">
         {/* ================================================================= */}
-        {/* TAB 1: BRIGHT CLINICAL ENTERPRISE HOMEPAGE */}
+        {/* TAB 1: CREATIVE CLINICAL ENTERPRISE HOMEPAGE */}
         {/* ================================================================= */}
         {activeTab === 'home' && (
           <div>
-            {/* Executive Split Hero with Soft Pearl-Teal Ambient Glow */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-teal-50/60 via-white to-sky-50/50 border-b border-slate-200/70">
+            {/* Executive Split Hero with Dot-Matrix Architectural Grid */}
+            <section className="relative bg-clinical-grid border-b border-slate-200/70">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                   <div className="lg:col-span-7 space-y-6">
-                    <div className="inline-flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-teal-700 bg-white border border-teal-200 px-3.5 py-1.5 rounded-full shadow-2xs">
+                    <div className="inline-flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-teal-700 bg-white/90 backdrop-blur border border-teal-200 px-3.5 py-1.5 rounded-full shadow-xs">
                       <Award className="w-3.5 h-3.5 text-teal-600" /> Autonomous Patient Access Infrastructure
                     </div>
 
                     <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-slate-900 leading-[1.12]">
                       Turn Every Missed Clinic Call Into a{' '}
-                      <span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+                      <span className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
                         Booked Consultation.
                       </span>
                     </h1>
@@ -432,56 +439,62 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => switchTab('call', 'call-demo')}
-                        className="bg-white hover:bg-slate-50 text-slate-900 font-bold px-6 py-3.5 rounded-xl text-sm border border-slate-200 transition shadow-sm flex items-center gap-2"
+                        className="bg-white/90 hover:bg-white text-slate-900 font-bold px-6 py-3.5 rounded-xl text-sm border border-slate-200 transition shadow-sm flex items-center gap-2"
                       >
                         <PhoneCall className="w-4 h-4 text-teal-600" /> Explore Call Assistant
                       </button>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 pt-5 border-t border-slate-200/80 max-w-xl">
-                      <div>
-                        <div className="text-2xl font-extrabold text-slate-900 font-mono">&lt; 1 Sec</div>
-                        <div className="text-xs text-slate-500 mt-0.5">First-Ring Answer Speed</div>
+                      <div className="bg-white/75 backdrop-blur border border-slate-200/70 rounded-2xl p-3">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono">&lt; 1 Sec</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">First-Ring Answer Speed</div>
                       </div>
-                      <div>
-                        <div className="text-2xl font-extrabold text-teal-600 font-mono">48 Hrs</div>
-                        <div className="text-xs text-slate-500 mt-0.5">Turnkey Clinic Setup</div>
+                      <div className="bg-white/75 backdrop-blur border border-slate-200/70 rounded-2xl p-3">
+                        <div className="text-xl sm:text-2xl font-extrabold text-teal-600 font-mono">48 Hrs</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">Turnkey Clinic Setup</div>
                       </div>
-                      <div>
-                        <div className="text-2xl font-extrabold text-slate-900 font-mono">$0 Risk</div>
-                        <div className="text-xs text-slate-500 mt-0.5">14-Day Free Clinical Pilot</div>
+                      <div className="bg-white/75 backdrop-blur border border-slate-200/70 rounded-2xl p-3">
+                        <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono">$0 Risk</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">14-Day Free Clinical Pilot</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Column: Bright Elevated Clinical Receptionist Card */}
+                  {/* Right Column: Frosted Glass Card with Live Animated Voice Equalizer */}
                   <div className="lg:col-span-5">
-                    <div className="bg-white/95 backdrop-blur border border-slate-200/90 rounded-3xl p-6 shadow-2xl shadow-teal-900/10 space-y-5">
+                    <div className="bg-white/85 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-2xl shadow-teal-900/10 ring-1 ring-slate-200/80 space-y-5">
                       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold shadow-md shadow-teal-600/20">
                             S
                           </div>
                           <div>
                             <div className="text-sm font-bold text-slate-900">Savannah • AI Front Desk</div>
                             <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Active 24/7 Voice & Web Intake
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Voice & Web Engine
                             </div>
                           </div>
                         </div>
-                        <span className="text-[11px] font-mono font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">
-                          HIPAA-Aligned
-                        </span>
+
+                        {/* Animated Live Voice Waveform */}
+                        <div className="flex items-center gap-1 h-7 px-3 py-1 rounded-xl bg-teal-50 border border-teal-200/80" title="Live Voice Receptionist Active">
+                          <span className="w-1 bg-teal-600 rounded-full voice-bar-1" />
+                          <span className="w-1 bg-emerald-500 rounded-full voice-bar-2" />
+                          <span className="w-1 bg-teal-600 rounded-full voice-bar-3" />
+                          <span className="w-1 bg-emerald-500 rounded-full voice-bar-4" />
+                          <span className="w-1 bg-teal-600 rounded-full voice-bar-5" />
+                        </div>
                       </div>
 
                       <div className="space-y-3 text-xs">
-                        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5">
+                        <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-3.5">
                           <div className="text-[10px] font-mono uppercase text-slate-400 mb-1">Incoming After-Hours Call • 6:42 PM</div>
                           <p className="text-slate-700 leading-relaxed">
                             “Hi, I’d like to schedule a new patient consultation for Monday morning if you have an opening.”
                           </p>
                         </div>
-                        <div className="bg-gradient-to-r from-teal-50 to-emerald-50/70 border border-teal-200/80 rounded-2xl p-3.5">
+                        <div className="bg-gradient-to-r from-teal-50/90 to-emerald-50/80 border border-teal-200/80 rounded-2xl p-3.5">
                           <div className="text-[10px] font-mono uppercase text-teal-700 font-bold mb-1">Savannah • Instant Calendar Sync</div>
                           <p className="text-slate-800 leading-relaxed">
                             “I have Monday at 10:00 AM Eastern available. I’ve reserved that slot and sent your confirmation & intake receipt.”
@@ -492,13 +505,13 @@ export default function App() {
                       <div className="grid grid-cols-2 gap-2.5 pt-1">
                         <button
                           onClick={() => switchTab('call', 'call-demo')}
-                          className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-3 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
+                          className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold py-3 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5"
                         >
                           <PhoneCall className="w-3.5 h-3.5" /> Call Assistant
                         </button>
                         <button
                           onClick={() => switchTab('chat', 'chat-demo')}
-                          className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold py-3 px-3 rounded-xl transition flex items-center justify-center gap-1.5"
+                          className="bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold py-3 px-3 rounded-xl transition flex items-center justify-center gap-1.5"
                         >
                           <MessageSquare className="w-3.5 h-3.5 text-teal-700" /> Chat Assistant
                         </button>
@@ -508,11 +521,11 @@ export default function App() {
                 </div>
 
                 {/* Ecosystem & Compatibility Strip */}
-                <div className="mt-14 pt-8 border-t border-slate-200/80 text-center space-y-4">
+                <div className="mt-14 pt-8 border-t border-slate-200/70 text-center space-y-4">
                   <p className="text-xs font-mono uppercase tracking-widest text-slate-500">
                     Seamlessly Compatible With Your Existing Clinic Phone & Scheduling Stack
                   </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4">
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5">
                     {[
                       'Google Calendar',
                       'Microsoft Outlook 365',
@@ -524,7 +537,7 @@ export default function App() {
                     ].map((tool) => (
                       <span
                         key={tool}
-                        className="text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 px-4 py-2 rounded-full shadow-2xs"
+                        className="text-xs font-semibold text-slate-700 bg-white/90 backdrop-blur border border-slate-200/90 px-4 py-2 rounded-full shadow-2xs hover:border-teal-300 transition"
                       >
                         {tool}
                       </span>
@@ -535,7 +548,7 @@ export default function App() {
             </section>
 
             {/* How It Works (3-Step Zero-IT Deployment) */}
-            <section className="py-16 bg-slate-50/70 border-b border-slate-200/70">
+            <section className="py-16 bg-white/70 backdrop-blur-sm border-b border-slate-200/70">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
                 <div className="text-center max-w-2xl mx-auto space-y-2">
                   <span className="text-xs font-mono font-semibold uppercase tracking-widest text-teal-700">
@@ -570,9 +583,12 @@ export default function App() {
                       desc: 'Confirmed consultations appear directly on your Google/Outlook schedule with an instant email summary sent to your reception desk.'
                     }
                   ].map((item) => (
-                    <div key={item.step} className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm hover:shadow-md transition space-y-3">
+                    <div
+                      key={item.step}
+                      className="bg-white/90 backdrop-blur border border-slate-200/90 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:-translate-y-1 hover:border-teal-300 transition-all duration-300 space-y-3"
+                    >
                       <div className="flex items-center justify-between">
-                        <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 flex items-center justify-center text-teal-700">
                           <item.icon className="w-5 h-5" />
                         </div>
                         <span className="text-xs font-mono font-bold text-slate-400">{item.step}</span>
@@ -586,7 +602,7 @@ export default function App() {
             </section>
 
             {/* Specialties & Clinical Safety Guardrails */}
-            <section className="py-16 bg-white border-b border-slate-200/70">
+            <section className="py-16 bg-clinical-grid border-b border-slate-200/70">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
                 <div className="text-center max-w-2xl mx-auto space-y-2">
                   <span className="text-xs font-mono font-semibold uppercase tracking-widest text-teal-700">
@@ -598,7 +614,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gradient-to-b from-slate-50/90 to-white border border-slate-200 p-6 rounded-2xl space-y-3">
+                  <div className="bg-white/90 backdrop-blur border border-slate-200/90 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:-translate-y-1 transition-all duration-300 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
                       <Stethoscope className="w-5 h-5" />
                     </div>
@@ -608,7 +624,7 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="bg-gradient-to-b from-slate-50/90 to-white border border-slate-200 p-6 rounded-2xl space-y-3">
+                  <div className="bg-white/90 backdrop-blur border border-slate-200/90 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:-translate-y-1 transition-all duration-300 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
                       <Building2 className="w-5 h-5" />
                     </div>
@@ -618,7 +634,7 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="bg-gradient-to-b from-slate-50/90 to-white border border-slate-200 p-6 rounded-2xl space-y-3">
+                  <div className="bg-white/90 backdrop-blur border border-slate-200/90 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:-translate-y-1 transition-all duration-300 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
                       <Sparkle className="w-5 h-5" />
                     </div>
@@ -630,7 +646,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                  <div className="bg-white border border-slate-200 p-6 rounded-2xl flex gap-4 items-start shadow-sm">
+                  <div className="bg-white/90 backdrop-blur border border-slate-200 p-6 rounded-2xl flex gap-4 items-start shadow-sm">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
                       <ShieldCheck className="w-5 h-5" />
                     </div>
@@ -642,7 +658,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-white border border-slate-200 p-6 rounded-2xl flex gap-4 items-start shadow-sm">
+                  <div className="bg-white/90 backdrop-blur border border-slate-200 p-6 rounded-2xl flex gap-4 items-start shadow-sm">
                     <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0">
                       <Lock className="w-5 h-5" />
                     </div>
@@ -658,9 +674,9 @@ export default function App() {
             </section>
 
             {/* Light Pearl-Teal Conversion Banner */}
-            <section className="py-16 bg-slate-50/70">
+            <section className="py-16 bg-white/60 backdrop-blur-sm">
               <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="bg-gradient-to-br from-teal-50 via-white to-emerald-50 border border-teal-200/90 rounded-3xl p-8 sm:p-12 shadow-xl shadow-teal-900/5 flex flex-col lg:flex-row items-center justify-between gap-8">
+                <div className="bg-gradient-to-br from-teal-50/95 via-white to-sky-50/90 border border-teal-200/90 rounded-3xl p-8 sm:p-12 shadow-xl shadow-teal-900/5 flex flex-col lg:flex-row items-center justify-between gap-8">
                   <div className="space-y-3 text-center lg:text-left max-w-xl">
                     <span className="inline-block text-xs font-mono font-bold uppercase tracking-widest text-teal-700 bg-white border border-teal-200 px-3 py-1 rounded-full">
                       Zero-Risk Performance Guarantee
@@ -698,7 +714,7 @@ export default function App() {
         {activeTab === 'call' && (
           <div id="call-demo" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-white/90 border border-teal-200 px-3.5 py-1 rounded-full">
                 <Volume2 className="w-3.5 h-3.5" /> 24/7 Autonomous Voice Receptionist
               </span>
               <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
@@ -709,8 +725,7 @@ export default function App() {
               </p>
             </div>
 
-            {/* Bright Clinical US Phone Demo Card */}
-            <div className="bg-gradient-to-br from-teal-50/90 via-white to-sky-50/80 border border-teal-200 rounded-3xl p-8 sm:p-10 shadow-xl shadow-teal-900/5 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="bg-gradient-to-br from-teal-50/95 via-white to-sky-50/90 backdrop-blur border border-teal-200 rounded-3xl p-8 sm:p-10 shadow-xl shadow-teal-900/5 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-4">
                 <div className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live US Telephony Line Active 24/7
@@ -734,7 +749,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 space-y-3 text-xs shadow-sm">
+              <div className="lg:col-span-5 bg-white/95 border border-slate-200 rounded-2xl p-5 space-y-3 text-xs shadow-sm">
                 <div className="font-bold text-teal-700 uppercase tracking-wider font-mono text-[11px]">
                   4 Things to Test When You Call:
                 </div>
@@ -759,14 +774,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* Interactive Voice Call Scenario Explorer */}
-            <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="bg-white/80 backdrop-blur border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Real Clinic Call Scenarios & Guardrails</h3>
                   <p className="text-xs text-slate-500">Select a call scenario below to inspect how our voice AI handles real patient conversations.</p>
                 </div>
-                <span className="text-xs font-mono font-semibold text-teal-700 bg-white border border-teal-200 px-3 py-1 rounded-full">
+                <span className="text-xs font-mono font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-full">
                   &lt; 800ms Voice Latency
                 </span>
               </div>
@@ -779,7 +793,7 @@ export default function App() {
                     className={`p-4 rounded-2xl border text-left transition ${
                       activeVoiceScenario === idx
                         ? 'bg-white border-teal-600 shadow-md ring-2 ring-teal-500/15'
-                        : 'bg-white/70 border-slate-200 hover:bg-white'
+                        : 'bg-slate-50/70 border-slate-200 hover:bg-white'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -826,7 +840,7 @@ export default function App() {
         {activeTab === 'chat' && (
           <div id="chat-demo" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
             <div className="text-center max-w-3xl mx-auto space-y-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-white/90 border border-teal-200 px-3.5 py-1 rounded-full">
                 <MessageSquare className="w-3.5 h-3.5" /> Web & SMS Administrative Concierge
               </span>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
@@ -838,7 +852,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-5 shadow-xl shadow-slate-200/50">
+              <div className="lg:col-span-6 bg-white/95 backdrop-blur border border-slate-200 rounded-3xl p-5 shadow-xl shadow-slate-200/50">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -909,7 +923,7 @@ export default function App() {
               </div>
 
               <div className="lg:col-span-6 space-y-4">
-                <div className="bg-slate-50/80 border border-slate-200 rounded-3xl p-5 space-y-4">
+                <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-3xl p-5 space-y-4 shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                     <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
                       <Database className="w-4 h-4 text-teal-600" /> Live 4-Point Administrative Intake
@@ -919,7 +933,7 @@ export default function App() {
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-white border border-slate-200 rounded-2xl flex items-center justify-between">
+                  <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl flex items-center justify-between">
                     <div>
                       <div className="text-[10px] text-slate-400 uppercase font-mono">Current Pipeline Stage</div>
                       <div className="text-xs font-bold text-teal-700 mt-0.5">{leadStage}</div>
@@ -928,29 +942,29 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5 text-xs">
-                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-200">
                       <div className="text-[10px] text-slate-400">1. Full Legal Name</div>
                       <div className="font-bold text-slate-900 truncate mt-0.5">{intakeState.name || 'Awaiting...'}</div>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-200">
                       <div className="text-[10px] text-slate-400">2. Callback Phone</div>
                       <div className="font-bold text-slate-900 truncate mt-0.5">{intakeState.phone || 'Awaiting...'}</div>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-200">
                       <div className="text-[10px] text-slate-400">3. Email Address</div>
                       <div className="font-bold text-slate-900 truncate mt-0.5">{intakeState.email || 'Awaiting...'}</div>
                     </div>
-                    <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-200">
                       <div className="text-[10px] text-slate-400">4. Desired Service</div>
                       <div className="font-bold text-teal-700 truncate mt-0.5">{intakeState.service || 'Doctor Consultation'}</div>
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2">
+                  <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2">
                     <div className="text-[10px] text-slate-400 uppercase font-mono">Confirmed Calendar Feed</div>
                     <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                       {syncedBookings.map((b) => (
-                        <div key={b.id} className="text-xs bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between">
+                        <div key={b.id} className="text-xs bg-white border border-slate-200 p-2.5 rounded-xl flex items-center justify-between">
                           <div>
                             <div className="font-bold text-slate-900 flex items-center gap-1.5">
                               <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-600" /> {b.patient}
@@ -968,7 +982,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-teal-50/70 border border-teal-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div className="bg-teal-50/90 border border-teal-200 rounded-2xl p-4 flex items-center justify-between gap-4">
                   <div className="text-xs text-slate-700">
                     <strong className="text-slate-900">Want this live on your clinic website & phone line?</strong> Deploy free for 14 days.
                   </div>
@@ -990,7 +1004,7 @@ export default function App() {
         {activeTab === 'partners' && (
           <div id="partners" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-200 px-3.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-widest text-teal-700 bg-white/90 border border-teal-200 px-3.5 py-1 rounded-full">
                 <Users className="w-3.5 h-3.5" /> Glow AI Partnership Program
               </span>
               <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
@@ -1002,17 +1016,17 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-b from-teal-50/60 to-white border border-slate-200 rounded-2xl p-6 text-center shadow-2xs">
+              <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
                 <div className="text-3xl font-extrabold text-teal-600 font-mono">350,000+</div>
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">US Outpatient & Dental Clinics</div>
                 <p className="text-xs text-slate-500 mt-1">High front-desk call volume with chronic staffing bottlenecks</p>
               </div>
-              <div className="bg-gradient-to-b from-slate-50 to-white border border-slate-200 rounded-2xl p-6 text-center shadow-2xs">
+              <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
                 <div className="text-3xl font-extrabold text-slate-900 font-mono">$4,500+/mo</div>
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">Avg. Clinic Missed-Call Leakage</div>
                 <p className="text-xs text-slate-500 mt-1">Just 3 missed new-patient calls/week costs thousands monthly</p>
               </div>
-              <div className="bg-gradient-to-b from-emerald-50/60 to-white border border-slate-200 rounded-2xl p-6 text-center shadow-2xs">
+              <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
                 <div className="text-3xl font-extrabold text-emerald-600 font-mono">14-Day Pilot</div>
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">Zero-Friction Clinic Close</div>
                 <p className="text-xs text-slate-500 mt-1">Practices verify real recovered bookings before paying $500/mo</p>
@@ -1052,7 +1066,7 @@ export default function App() {
                   desc: 'All client contracting, telephony infrastructure, and technical maintenance are managed directly by Glow AI Automation.'
                 }
               ].map((card, i) => (
-                <div key={i} className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-2.5">
+                <div key={i} className="bg-white/90 backdrop-blur border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition space-y-2.5">
                   <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
                     <card.icon className="w-4 h-4" />
                   </div>
@@ -1062,7 +1076,7 @@ export default function App() {
               ))}
             </div>
 
-            <div className="bg-gradient-to-r from-teal-50 via-white to-emerald-50 border border-teal-200 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md shadow-teal-900/5">
+            <div className="bg-gradient-to-r from-teal-50/95 via-white to-sky-50/90 border border-teal-200 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md shadow-teal-900/5">
               <div className="space-y-1.5 text-center sm:text-left">
                 <h3 className="text-xl font-bold text-slate-900">Have a Practice Ready for a 14-Day Pilot?</h3>
                 <p className="text-xs text-slate-600">
@@ -1092,7 +1106,7 @@ export default function App() {
         {/* ================================================================= */}
         {activeTab === 'onboard' && (
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-            <div className="bg-gradient-to-br from-teal-50 via-white to-emerald-50/70 border border-teal-200 rounded-3xl p-8 sm:p-10 shadow-lg shadow-teal-900/5 text-center space-y-4">
+            <div className="bg-gradient-to-br from-teal-50/95 via-white to-sky-50/85 border border-teal-200 rounded-3xl p-8 sm:p-10 shadow-lg shadow-teal-900/5 text-center space-y-4">
               <span className="inline-block text-xs font-mono font-bold uppercase tracking-widest text-teal-700 bg-white border border-teal-200 px-3 py-1 rounded-full">
                 Zero-Risk Performance Guarantee
               </span>
@@ -1110,7 +1124,7 @@ export default function App() {
       </main>
 
       {/* Clean Light Multi-Column Enterprise Footer */}
-      <footer className="bg-slate-50 text-slate-600 border-t border-slate-200 mt-12">
+      <footer className="relative z-10 bg-white/85 backdrop-blur text-slate-600 border-t border-slate-200/80 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
